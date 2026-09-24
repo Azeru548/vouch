@@ -1,0 +1,98 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}</style><style>:root{color-scheme:light dark;--md-bg:#fff;--md-text:rgba(0,0,0,.8);--md-muted:rgba(0,0,0,.6);--md-fill:rgba(0,0,0,.04);--md-fill-strong:rgba(0,0,0,.06);--md-rule:rgba(0,0,0,.1);--md-rule-strong:rgba(0,0,0,.16);--md-link:hsl(210 100% 45%)}@media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])){--md-bg:#0d0d0d;--md-text:rgba(255,255,255,.85);--md-muted:rgba(255,255,255,.6);--md-fill:rgba(255,255,255,.06);--md-fill-strong:rgba(255,255,255,.09);--md-rule:rgba(255,255,255,.14);--md-rule-strong:rgba(255,255,255,.22);--md-link:hsl(210 100% 72%)}}:root[data-theme="dark"]{color-scheme:dark;--md-bg:#0d0d0d;--md-text:rgba(255,255,255,.85);--md-muted:rgba(255,255,255,.6);--md-fill:rgba(255,255,255,.06);--md-fill-strong:rgba(255,255,255,.09);--md-rule:rgba(255,255,255,.14);--md-rule-strong:rgba(255,255,255,.22);--md-link:hsl(210 100% 72%)}:root[data-theme="light"]{color-scheme:light}@media print{:root,:root[data-theme="dark"]{color-scheme:light;--md-bg:#fff;--md-text:rgba(0,0,0,.8);--md-muted:rgba(0,0,0,.6);--md-fill:rgba(0,0,0,.04);--md-fill-strong:rgba(0,0,0,.06);--md-rule:rgba(0,0,0,.1);--md-rule-strong:rgba(0,0,0,.16);--md-link:hsl(210 100% 45%)}}body{background:var(--md-bg);color:var(--md-text);max-width:720px;margin:0 auto;padding:32px;display:flex;flex-direction:column;gap:10px;font:14px/1.55 -apple-system,BlinkMacSystemFont,'SF Pro','Segoe UI',sans-serif;overflow-wrap:break-word}body>:first-child{margin-top:0}h1,h2,h3,h4,h5,h6{margin:6px 0 0;line-height:1.25;font-weight:600;text-wrap:balance}h1{font-size:1.35em}h2{font-size:1.15em;color:var(--md-muted)}h3,h4,h5,h6{font-size:1em}p,ul,ol,blockquote,table,pre,hr{margin:0}strong{font-weight:600}a{color:var(--md-link);text-decoration:none}a:hover{text-decoration:underline}ul,ol{display:flex;flex-direction:column;gap:6px;padding-left:22px}ul{list-style:disc}ol{list-style:decimal}:is(li,td,th)>*+:is(p,ul,ol,blockquote){margin-top:6px}blockquote{display:flex;flex-direction:column;gap:10px;border-left:2px solid var(--md-rule);padding-left:10px;color:var(--md-muted)}:not(pre)>code{background:var(--md-fill);padding:1px 3px;border-radius:4px;font:.92em 'SF Mono',ui-monospace,Menlo,Consolas,monospace}a>code{background:none;color:inherit}pre{background:var(--md-fill);padding:10px 12px;border-radius:6px;overflow-x:auto;font:12px/1.5 'SF Mono',ui-monospace,Menlo,Consolas,monospace;margin-block:4px}pre code{background:none;padding:0;font:inherit}table{width:100%;border-collapse:separate;border-spacing:2px;font:inherit}th,td{padding:6px 8px;border-radius:3px;text-align:left;vertical-align:top}th{background:var(--md-fill-strong);font-weight:600}td{background:var(--md-fill)}:is(th,td) :not(pre)>code{background:transparent}hr{border:0;border-top:1px solid var(--md-rule-strong);margin-block:10px}img{max-width:100%;height:auto;border-radius:4px}</style>
+</head><body>
+<h1>Vouch</h1>
+<p><strong>Is it real? Scan and know.</strong></p>
+<p>Track: FinTech &amp; Commerce <em>(or Civic Tech &amp; Public Good — see Track Fit below)</em></p>
+<hr>
+<h2>The Problem</h2>
+<p>NAFDAC assigns every approved drug, food, cosmetic, and chemical product a registration number as proof it passed safety review. Consumers see these numbers on packaging every day and trust them — but almost nobody can actually check one. NAFDAC's own verification tool is app-only, drug-focused, and not built for a fast, in-store decision. The result: a real safety signal exists, but it's functionally invisible to the person standing in the shop.</p>
+<p>Two failure modes make this worse than &quot;just check the number&quot;:</p>
+<ol>
+<li><strong>No number at all</strong> — an unregistered or fully fake product with nothing to verify.</li>
+<li><strong>Number cloning</strong> — counterfeiters print a <em>real</em> registered number on a <em>different</em> product. A simple &quot;does this number exist&quot; check misses this entirely; you have to confirm the number belongs to <em>this</em> product.</li>
+</ol>
+<h2>The Solution</h2>
+<p>Vouch is a consumer-facing scan tool that checks any NAFDAC-registered product — drugs, food, cosmetics, chemicals — against NAFDAC's own registry in real time, and catches both failure modes above.</p>
+<p><strong>Core flow:</strong></p>
+<ol>
+<li>User scans the NAFDAC number on the pack (camera OCR, manual entry as fallback)</li>
+<li>Vouch looks it up against a locally-ingested copy of the full NAFDAC registry</li>
+<li>Result is one of three outcomes, not two:
+<ul>
+<li>✅ <strong>Verified</strong> — number exists, product name/manufacturer matches registry</li>
+<li>⚠️ <strong>Mismatch</strong> — number exists but belongs to a different product (likely cloning)</li>
+<li>❌ <strong>Not found</strong> — number isn't in the registry at all</li>
+</ul>
+</li>
+<li>User can report a suspicious product directly from the result screen, building a structured, location-tagged signal over time</li>
+</ol>
+<h2>Why This, Why Now</h2>
+<ul>
+<li>NAFDAC's registry is real, current, and — per our own technical recon — programmatically accessible with no authentication required</li>
+<li>Scope is explicitly limited to <strong>NAFDAC-registered products only</strong> — no unregulated-product visual detection, no scope creep, a claim we can fully back with data</li>
+<li>One numbering system already spans multiple product categories (drug, food, cosmetic, chemical), so &quot;beyond just drugs&quot; isn't a stretch — it's the same dataset</li>
+</ul>
+<h2>Target User</h2>
+<p>Everyday consumers buying medicine, packaged food, or cosmetics from patent medicine shops, open markets, and informal retail — the exact point in the supply chain where counterfeits pass through with the least friction.</p>
+<h2>Track Fit</h2>
+<p>Strongest fit is <strong>FinTech &amp; Commerce</strong> (marketplace/commerce trust tooling) or <strong>Civic Tech &amp; Public Good</strong> (public safety infrastructure) — both tracks are live options; final call depends on how the pitch frames it (consumer trust tool vs. public-health infrastructure).</p>
+<hr>
+<h2>Technical Spec</h2>
+<h3>Data Source</h3>
+<ul>
+<li><code>greenbook.nafdac.gov.ng</code> — confirmed public JSON API (DataTables server-side endpoint), no auth, no rate limiting observed</li>
+<li>Full registry: 8,977 products</li>
+<li>Ingested on a scheduled pull (daily or every 2–3 days) into Vouch's own database — consumer lookups never hit NAFDAC live</li>
+</ul>
+<h3>Ingestion Pipeline</h3>
+<ul>
+<li>Paginated GET requests (<code>length=500</code> per page) with required <code>X-Requested-With: XMLHttpRequest</code> header</li>
+<li>Fields captured: NAFDAC reg. number, product name, strength, form, applicant, manufacturer, category, approval/expiry date, status</li>
+<li>Normalization: lowercase, strip formatting artifacts, collapse whitespace, preserve dosage/units</li>
+<li><strong>Known constraint:</strong> reg. numbers are not unique per row (multiple products can share a prefix/number pattern) — lookup returns <em>all</em> candidate rows for a number, not a single match</li>
+</ul>
+<h3>Verification Logic</h3>
+<ul>
+<li>Exact reg. number lookup against local DB</li>
+<li>Candidate product name compared against registry name(s) using token-based fuzzy matching (e.g. RapidFuzz <code>token_set_ratio</code>), handling word-order and formatting differences</li>
+<li>Manufacturer compared separately from product name — independent scoring gives a sharper counterfeit signal than one blended score</li>
+<li>Similarity threshold (~80–85%, tuned against real data) determines Verified vs. Mismatch</li>
+</ul>
+<h3>OCR / Input</h3>
+<ul>
+<li>Primary: camera capture → vision-model API (structured JSON extraction: <code>nafdac_number</code>, <code>product_name</code>, <code>found</code>) rather than classical OCR, for robustness against glare, curved packaging, and inconsistent print position</li>
+<li>Extracted number regex-validated against NAFDAC's known format before trusting it — vision models can hallucinate plausible-looking codes from blurry input</li>
+<li>Fallback: manual number entry, always available</li>
+</ul>
+<h3>Report Feature</h3>
+<ul>
+<li>Structured, not free-text-only: reg. number, scan result at time of report, coarse location (market/area, not precise GPS), optional photo, optional note</li>
+<li>Reports are a <strong>signal, not a public verdict</strong> — never displayed as a standalone accusation against a named manufacturer</li>
+<li>Aggregation threshold (e.g. 3+ independent reports in a time window) before any pattern surfaces in-app</li>
+<li>Basic spam control via per-device/session rate limiting — no full account system needed for MVP</li>
+<li>Framed honestly in the pitch: architected to export aggregated, anonymized data in a format regulators <em>could</em> consume — no claimed partnership or integration with NAFDAC</li>
+</ul>
+<h3>Known Limitations (state these up front, don't get caught out)</h3>
+<ul>
+<li>Registry is a periodic snapshot, not live — a newly-registered product could briefly show &quot;not found&quot;; UI copy must say &quot;not found in our records&quot; rather than &quot;confirmed fake&quot;</li>
+<li>Scope is registered products only — an unregistered product with no number is out of scope by design</li>
+<li>Reg. number collisions require the fuzzy-match layer to work correctly; edge cases here are the main technical risk</li>
+</ul>
+<hr>
+<h2>MVP Build Order</h2>
+<ol>
+<li>Ingestion pipeline + local DB (data layer proven via recon — low risk)</li>
+<li>Lookup endpoint: number → candidate rows → match/mismatch/not-found</li>
+<li>Frontend scan flow, OCR wired in with manual-entry fallback</li>
+<li>Fuzzy name/manufacturer matching + threshold tuning</li>
+<li>Report submission + aggregation view</li>
+<li>Buffer for data-quality issues (expect this to eat the most time)</li>
+</ol>
+<h2>What We're Not Claiming</h2>
+<ul>
+<li>No NAFDAC partnership or endorsement</li>
+<li>No coverage of unregistered/informal products</li>
+<li>No guarantee of real-time registry freshness</li>
+</ul>
+
+</body></html>

@@ -1,0 +1,16 @@
+node_modules/
+.env
+.env.*
+!.env.example
+*.log
+npm-debug.log*
+coverage/
+recon/
+screenshots/
+data/*.db-shm
+data/*.db-wal
+data/*.db-journal
+scripts/*.db
+scripts/duplicate_report.txt
+.DS_Store
+Thumbs.db

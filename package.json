@@ -1,0 +1,32 @@
+{
+  "name": "vouch",
+  "version": "1.0.0",
+  "description": "Verify product packaging against a local NAFDAC registration snapshot.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node scripts/test_verify.js && node scripts/smoke_test.js",
+    "ingest": "node scripts/ingest.js",
+    "enrich:manufacturers": "node scripts/enrich_manufacturers.js",
+    "test:extract": "node scripts/test_extract.js",
+    "test:e2e": "node scripts/e2e_flow.js"
+  },
+  "keywords": [
+    "nafdac",
+    "product-verification",
+    "consumer-safety"
+  ],
+  "author": "Azeru548",
+  "license": "ISC",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "fuzzball": "^2.2.6"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
+  }
+}

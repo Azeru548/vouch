@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b5d3b">
+  <meta name="description" content="Check product packaging details against a local NAFDAC registration snapshot.">
+  <title>Vouch — NAFDAC Product Check</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/" aria-label="Vouch home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" role="img">
+            <path d="M16 3.5 27 7.8v7.6c0 6.1-4.2 10.7-11 13.1C9.2 26.1 5 21.5 5 15.4V7.8L16 3.5Z"/>
+            <path d="m10.5 16 3.4 3.4 7.8-8"/>
+          </svg>
+        </span>
+        <span>
+          <strong>Vouch</strong>
+          <small>NAFDAC product check</small>
+        </span>
+      </a>
+      <div class="registry-note">
+        <span class="registry-pulse" aria-hidden="true"></span>
+        Registry-based verification
+      </div>
+    </div>
+    <div class="hero-copy">
+      <h1>Check the pack before you trust it.</h1>
+      <p>Read the registration number, confirm the product details, and compare them with a local NAFDAC registry snapshot.</p>
+    </div>
+    <p id="vision-banner" class="vision-banner hidden" role="status"></p>
+  </header>
+
+  <main class="workspace">
+    <section class="card scan-card" aria-labelledby="scan-title">
+      <div class="section-heading">
+        <span class="step-number" aria-hidden="true">1</span>
+        <div>
+          <h2 id="scan-title">Start with a photo</h2>
+          <p>Capture the registration panel clearly, or enter the details yourself.</p>
+        </div>
+      </div>
+
+      <div class="scan-actions">
+        <button id="btn-camera" class="btn btn-primary" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5h3l1.5-2h7l1.5 2h3v10H4v-10Z"/><circle cx="12" cy="13.5" r="3.5"/></svg>
+          Take photo
+        </button>
+        <label class="btn btn-secondary" for="file-input">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14v5h14v-5"/></svg>
+          Upload image
+        </label>
+        <input id="file-input" type="file" accept="image/*" capture="environment" hidden>
+      </div>
+
+      <div class="privacy-note">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2M5 10h14v10H5V10Z"/></svg>
+        <p><strong>Your photo stays optional.</strong> When photo reading is enabled, the selected image is sent to the configured vision service to locate the NAFDAC number.</p>
+      </div>
+
+      <div id="preview-wrap" class="preview-wrap hidden">
+        <img id="preview" alt="Selected product photo">
+        <button id="btn-clear-image" class="btn btn-ghost" type="button">Remove photo</button>
+      </div>
+      <div id="ocr-status" class="ocr-status hidden" role="status" aria-live="polite"></div>
+    </section>
+
+    <section class="card verify-card" aria-labelledby="verify-title">
+      <div class="section-heading">
+        <span class="step-number" aria-hidden="true">2</span>
+        <div>
+          <h2 id="verify-title">Confirm the product</h2>
+          <p id="confirm-hint">Enter the NAFDAC number and product name exactly as printed on the pack.</p>
+        </div>
+      </div>
+
+      <form id="verify-form" autocomplete="off" novalidate>
+        <div class="field">
+          <label for="in-nafdac">NAFDAC registration number <span class="required">Required</span></label>
+          <input id="in-nafdac" name="nafdac" type="text" placeholder="e.g. A11-0009" spellcheck="false" maxlength="32" required aria-describedby="nafdac-help">
+          <span id="nafdac-help" class="field-help">You can scan this from the pack or type it.</span>
+        </div>
+
+        <div class="field">
+          <label for="in-name">Product name <span class="required">Required</span></label>
+          <input id="in-name" name="product_name" type="text" placeholder="e.g. Alben Paracetamol Drops" spellcheck="false" maxlength="200" required>
+        </div>
+
+        <div class="field">
+          <label for="in-mfr">Manufacturer <span class="optional">Optional, but improves accuracy</span></label>
+          <input id="in-mfr" name="manufacturer" type="text" placeholder="e.g. Alben Healthcare Industries Limited" spellcheck="false" maxlength="200">
+        </div>
+
+        <button id="verify-button" class="btn btn-primary btn-block" type="submit">
+          <span id="verify-label">Check registration</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+        </button>
+      </form>
+    </section>
+
+    <section id="result" class="result-region hidden" aria-live="polite" aria-atomic="true" tabindex="-1"></section>
+
+    <aside class="trust-strip" aria-label="Verification scope">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 6v5.5c0 4.4-3 7.7-8 9.5-5-1.8-8-5.1-8-9.5V6l8-3Z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></svg>
+      <p><strong>Know the limit of the check.</strong> Vouch compares your details with a local registry snapshot. A result does not replace professional medical advice or guarantee the product’s quality.</p>
+    </aside>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
