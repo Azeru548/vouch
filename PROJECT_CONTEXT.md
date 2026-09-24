@@ -14,7 +14,6 @@ Data source is NAFDAC's public Greenbook (https://greenbook.nafdac.gov.ng). Snap
 config.js            Shared runtime, database path, and vision model configuration
 server.js            Express app: /verify, /api/extract, /api/config, /api/health, static web/
 web/                 Vouch UI: index.html, styles.css, app.js (no framework, no build step)
-render.yaml          Render deployment blueprint
 .env.example         Non-secret environment template
 data/
   nafdac_products.db SQLite, 8,977 product rows (~1.8 MB)
@@ -130,7 +129,7 @@ Useful reg numbers for manual testing:
 
 ## Status of work
 
-Done: recon, ingestion, manufacturer enrichment, whitespace migration, `/verify` with all 4 verdicts, vision extraction, responsive Vouch UI, client-side image downscaling, security headers, asserted API/smoke tests, Playwright desktop/mobile tests, and a Render deployment manifest.
+Done: recon, ingestion, manufacturer enrichment, whitespace migration, `/verify` with all 4 verdicts, vision extraction, responsive Vouch UI, client-side image downscaling, security headers, and asserted API/smoke/browser tests. Deployment is intentionally deferred.
 
 Not done / known gaps:
 - Product reporting is not implemented; the UI states this instead of presenting a dead control.
