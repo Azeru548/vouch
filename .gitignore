@@ -10,6 +10,7 @@ screenshots/
 data/*.db-shm
 data/*.db-wal
 data/*.db-journal
+data/napams_cache.db
 scripts/*.db
 scripts/duplicate_report.txt
 .DS_Store

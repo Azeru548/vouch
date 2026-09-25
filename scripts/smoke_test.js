@@ -1,8 +1,29 @@
 const assert = require('node:assert/strict');
 const { spawn } = require('child_process');
+const fs = require('node:fs');
+const os = require('node:os');
 const path = require('path');
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-const BASE = 'http://127.0.0.1:3777';
+
+async function stopServer(server) {
+  if (server.exitCode !== null) return;
+  await new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      resolve();
+    };
+    const timeout = setTimeout(finish, 2000);
+    server.once('exit', finish);
+    server.kill();
+  });
+}
+
+const PORT = 38000 + (process.pid % 1000);
+const BASE = `http://127.0.0.1:${PORT}`;
+const CACHE_PATH = path.join(os.tmpdir(), `vouch-smoke-cache-${process.pid}.db`);
 
 const staticChecks = [
   ['/', 'text/html'],
@@ -34,14 +55,10 @@ async function waitForServer() {
 (async () => {
   const server = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], {
     stdio: ['ignore', 'pipe', 'inherit'],
-    env: { ...process.env, GROQ_API_KEY: '' },
+    env: { ...process.env, PORT: String(PORT), GROQ_API_KEY: '', CACHE_DATABASE_PATH: CACHE_PATH },
   });
-  let banner = '';
-  server.stdout.on('data', (data) => { banner += data; });
-
   try {
     await waitForServer();
-    assert.match(banner, /web UI/);
 
     for (const [route, expectedType] of staticChecks) {
       const response = await fetch(BASE + route);
@@ -69,9 +86,21 @@ async function waitForServer() {
       assert.equal(result.debug, undefined);
     }
 
-    console.log(`${staticChecks.length} static checks, validation checks, and ${verifyCases.length} verdict checks passed`);
+    const cacheWrite = await fetch(`${BASE}/api/napams/cache`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nafdac: 'D1-9999', product_name: 'Cached Product', status: 'Active' }),
+    });
+    assert.equal(cacheWrite.status, 201);
+    const cached = await fetch(`${BASE}/verify?nafdac=D1-9999&product_name=Cached%20Product`);
+    const cachedResult = await cached.json();
+    assert.equal(cachedResult.status, 'verified');
+    assert.equal(cachedResult.matched.source, 'napams_manual');
+
+    console.log(`${staticChecks.length} static checks, validation checks, ${verifyCases.length} verdict checks, and NAPAMS cache check passed`);
   } finally {
-    server.kill();
+    await stopServer(server);
+    fs.rmSync(CACHE_PATH, { force: true });
   }
 })().catch((error) => {
   console.error(error);

@@ -6,7 +6,7 @@ Read this first if you're continuing this project in a fresh session.
 
 A product-verification app: a user photographs a product pack (or types the details), and the app checks the NAFDAC registration number + product name against a local snapshot of the NAFDAC Greenbook database, then reports one of four verdicts.
 
-Data source is NAFDAC's public Greenbook (https://greenbook.nafdac.gov.ng). Snapshot ingested once into SQLite; no live dependency on NAFDAC at query time.
+Data sources are NAFDAC's public Greenbook (https://greenbook.nafdac.gov.ng) for bulk medicine/device records and official NAPAMS (https://registration.nafdac.gov.ng/) for user-confirmed per-number checks. Greenbook is stored in SQLite; NAPAMS results are cached locally only after the user completes the official verification.
 
 ## Layout
 
@@ -17,6 +17,7 @@ web/                 Vouch UI: index.html, styles.css, app.js (no framework, no 
 .env.example         Non-secret environment template
 data/
   nafdac_products.db SQLite, 8,977 product rows (~1.8 MB)
+  napams_cache.db   Local, user-confirmed NAPAMS records; ignored by Git
 scripts/             ingest + tests (see "Commands" below)
 recon/               original recon artifacts: captured JSON responses, full dump, network logs
 assets/              two test photos of a soda bottle (sharp + blurry)
@@ -52,6 +53,8 @@ Also a `manufacturers(id, name)` reference table (1,420 rows) scraped from `/man
 
 `products.manufacturer_id` is stored as **TEXT** (node:sqlite bound JS numbers into a TEXT column as `'1318.0'`), normalized once to `'1318'`. Be aware if writing joins.
 
+`napams_cache` is a separate writable local SQLite database created at `data/napams_cache.db`. It stores only records the user manually confirms after opening the official NAPAMS verifier: `nafdac`, `product_name`, optional manufacturer/applicant/category/notes, status, `source`, and `checked_at`. It is not a scraped mirror of NAPAMS.
+
 ## The four verdicts
 
 | status | meaning | UI treatment |
@@ -61,7 +64,7 @@ Also a `manufacturers(id, name)` reference table (1,420 rows) scraped from `/man
 | `mismatch` | name <85, or manufacturer gate failed | red + "closest match — does not confirm" |
 | `not_found` | no rows for that number | dark red dashed, different copy |
 
-`mismatch` and `not_found` get a "Report this product" button (currently a console stub).
+`mismatch` and `not_found` show a NAPAMS handoff panel. The button opens the official verifier and copies the entered number; after the user completes the official check, they may save the confirmed result to the local cache.
 
 ## /verify decision logic (do not casually change — it's tuned)
 
@@ -72,7 +75,7 @@ Also a `manufacturers(id, name)` reference table (1,420 rows) scraped from `/man
 5. **Active-preference tiebreak:** take max rank, keep candidates within 3 points, prefer `status === 'Active'` if any exist there.
 6. Verdict: name <85 → mismatch; else mfr provided and mfr <60 → mismatch + `reason: "manufacturer_mismatch"`; else status !== Active → `verified_inactive`; else verified.
 
-Response: `{status, matched|closest_match, score, [reason], [message]}`. Development diagnostics are only included when the server starts with `EXPOSE_VERIFY_DEBUG=true`; public responses never include the candidate spread by default.
+Response: `{status, matched|closest_match, score, [reason], [message]}`. Development diagnostics are only included when the server starts with `EXPOSE_VERIFY_DEBUG=true`; public responses never include the candidate spread by default. Matched records include `source: greenbook` or `source: napams_manual`.
 
 ## Vision extraction
 
@@ -89,7 +92,13 @@ Key gotchas learned the hard way:
 - The regex only validates *shape*, not correctness. A wrong-but-well-formed number will pass and land on `not_found`. That's the intended safety net, not a silent bad verification.
 - `GET /api/config` reports whether vision is enabled so the UI can show a banner.
 
-## Test photos (`assets/`)
+## NAPAMS handoff and local cache
+
+- The UI opens `https://registration.nafdac.gov.ng/` in a new tab and copies the entered NAFDAC number to the clipboard when possible.
+- The user completes the official CAPTCHA and verification manually; Vouch does not automate or bypass it.
+- The form saves only a user-confirmed NAPAMS result to `data/napams_cache.db` through `POST /api/napams/cache`.
+- Future checks search Greenbook and the local NAPAMS cache together. Cached records are clearly labelled as manually confirmed.
+- The cache is local development data and is ignored by Git. Delete it to clear manually confirmed NAPAMS records.
 
 Both are the same soda bottle. Printed NAFDAC number is **`AB-102886`**.
 
@@ -101,8 +110,8 @@ Note: **`AB-102886` is not in the database** (`%102886%` returns 0 rows), so the
 ## Commands
 
 ```powershell
-npm.cmd test                         # 12 asserted /verify cases + smoke/security checks
-npm.cmd run test:e2e                 # Playwright desktop/mobile flow, all verdicts
+npm.cmd test                         # 12 asserted /verify cases + smoke/security/cache checks
+npm.cmd run test:e2e                 # Playwright desktop/mobile flow, NAPAMS handoff, all verdicts
 npm.cmd run test:extract             # sends each assets/ image through /api/extract
 npm.cmd run ingest                   # re-pull Greenbook (destructive: recreates the DB)
 npm.cmd run enrich:manufacturers     # refresh manufacturer names in the shared DB
@@ -129,10 +138,11 @@ Useful reg numbers for manual testing:
 
 ## Status of work
 
-Done: recon, ingestion, manufacturer enrichment, whitespace migration, `/verify` with all 4 verdicts, vision extraction, responsive Vouch UI, client-side image downscaling, security headers, and asserted API/smoke/browser tests. Deployment is intentionally deferred.
+Done: recon, ingestion, manufacturer enrichment, whitespace migration, `/verify` with all 4 verdicts, vision extraction, responsive Vouch UI, client-side image downscaling, security headers, NAPAMS handoff, local confirmed-result cache, and asserted API/smoke/browser tests. Deployment is intentionally deferred.
 
 Not done / known gaps:
-- Product reporting is not implemented; the UI states this instead of presenting a dead control.
+- NAPAMS is not a bulk source; the current flow is intentionally manual and CAPTCHA-safe.
+- No automatic refresh of the local NAPAMS cache.
 - No rate limiting or abuse monitoring yet.
 - Camera (`getUserMedia`) needs HTTPS or localhost and will not work over a LAN IP.
 - Groq uses a 25-second timeout but no retry/backoff or circuit breaker.
@@ -153,6 +163,7 @@ The site exposes no security contact; route disclosure through official NAFDAC c
 ## Notes / gotchas for the next session
 
 - `npm` may be blocked by PowerShell execution policy — use **`npm.cmd`**.
+- Automated tests use a per-process port and temporary `CACHE_DATABASE_PATH`; they do not touch the real `data/napams_cache.db`.
 - Scripts that spawn the server must point at `path.join(__dirname, '..', 'server.js')` since they now live in `scripts/`.
 - The `GROQ_API_KEY` was set with `setx` (persisted to the user env). **It is also in this project's chat history — rotate it before any demo.** Remove with `[Environment]::SetEnvironmentVariable('GROQ_API_KEY',$null,'User')`.
 - An unrelated `next dev` server runs from `C:\Users\PC\cgen\frontend` on port 3111; don't kill it when cleaning up port 3777.

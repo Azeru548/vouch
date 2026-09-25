@@ -1,9 +1,12 @@
 const assert = require('node:assert/strict');
 const { spawn } = require('child_process');
+const fs = require('node:fs');
+const os = require('node:os');
 const path = require('path');
 
-const PORT = 3777;
+const PORT = 38000 + (process.pid % 1000);
 const BASE = `http://127.0.0.1:${PORT}`;
+const CACHE_PATH = path.join(os.tmpdir(), `vouch-verify-cache-${process.pid}.db`);
 
 const cases = [
   { label: 'inactive registration', nafdac: '04-0858', product_name: '10% Dextrose (500/1000 mL)**', expected: 'verified_inactive', match: 'dextrose' },
@@ -22,6 +25,22 @@ const cases = [
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+async function stopServer(server) {
+  if (server.exitCode !== null) return;
+  await new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      resolve();
+    };
+    const timeout = setTimeout(finish, 2000);
+    server.once('exit', finish);
+    server.kill();
+  });
+}
+
 async function waitForServer() {
   for (let attempt = 0; attempt < 60; attempt++) {
     try {
@@ -36,7 +55,7 @@ async function waitForServer() {
 (async () => {
   const server = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], {
     stdio: ['ignore', 'ignore', 'inherit'],
-    env: { ...process.env, GROQ_API_KEY: '' },
+    env: { ...process.env, PORT: String(PORT), GROQ_API_KEY: '', CACHE_DATABASE_PATH: CACHE_PATH },
   });
 
   try {
@@ -70,7 +89,8 @@ async function waitForServer() {
 
     console.log(`\n${passed}/${cases.length} verification tests passed`);
   } finally {
-    server.kill();
+    await stopServer(server);
+    fs.rmSync(CACHE_PATH, { force: true });
   }
 })().catch((error) => {
   console.error(error);

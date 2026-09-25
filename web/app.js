@@ -295,13 +295,20 @@ function paint(result, input) {
     },
   };
 
-  const treatment = treatments[result.status];
-  if (!treatment) {
+  if (!treatments[result.status]) {
     showServiceError(new Error(`Unexpected response status: ${result.status}`));
     return;
   }
+  const treatment = { ...treatments[result.status] };
 
   const record = result.matched || result.closest_match;
+  const manualNapams = record?.source === 'napams_manual';
+  if (manualNapams) {
+    treatment.badge = 'NAPAMS cache';
+    treatment.title = result.status === 'verified_inactive'
+      ? 'This product was manually confirmed inactive on NAPAMS'
+      : 'This product was manually confirmed on NAPAMS';
+  }
   const parts = [
     `<div class="result-head"><span class="result-badge">${treatment.badge}</span><h2>${escapeHtml(treatment.title)}</h2></div>`,
   ];
@@ -332,11 +339,88 @@ function paint(result, input) {
   }
 
   if (result.status === 'mismatch' || result.status === 'not_found') {
-    parts.push('<p class="report-note">Product reporting is planned for a future release. Keep the packaging and purchase details for your records.</p>');
+    parts.push(napamsPanel(input));
   }
 
   parts.push('<p class="result-footnote">This result reflects the local registry snapshot and does not assess product quality or authenticity beyond the available registration data.</p>');
   setResult(`<div class="result ${treatment.className}">${parts.join('')}</div>`);
+  setupNapamsPanel(input);
+}
+
+function napamsPanel(input) {
+  return `<section class="napams-panel" aria-labelledby="napams-title">
+    <div class="napams-panel-head">
+      <div>
+        <h3 id="napams-title">Check the official NAPAMS record</h3>
+        <p>Open NAFDAC’s verifier, complete the CAPTCHA, then save the confirmed result here for faster local checks.</p>
+      </div>
+      <button id="btn-napams" class="btn btn-secondary" type="button">Open official NAPAMS</button>
+    </div>
+    <p id="napams-copy-status" class="napams-copy-status" role="status"></p>
+    <form id="napams-cache-form" class="napams-form">
+      <div class="napams-form-heading">
+        <strong>After checking NAPAMS</strong>
+        <span>Only save what the official page confirms.</span>
+      </div>
+      <div class="napams-fields">
+        <label>NAFDAC number<input id="cache-nafdac" type="text" value="${escapeHtml(input.nafdac)}" readonly></label>
+        <label>Product name<input id="cache-name" type="text" value="${escapeHtml(input.productName)}" maxlength="200" required></label>
+        <label>Manufacturer <span>(optional)</span><input id="cache-manufacturer" type="text" value="${escapeHtml(input.manufacturer || '')}" maxlength="200"></label>
+        <label>NAPAMS status<select id="cache-status"><option value="Active">Active</option><option value="Inactive">Inactive</option></select></label>
+      </div>
+      <button class="btn btn-primary" type="submit">Save result to local cache</button>
+      <p id="napams-cache-status" class="napams-cache-status" role="status"></p>
+    </form>
+  </section>`;
+}
+
+async function setupNapamsPanel(input) {
+  const handoff = document.getElementById('btn-napams');
+  const copyStatus = document.getElementById('napams-copy-status');
+  handoff?.addEventListener('click', async () => {
+    window.open('https://registration.nafdac.gov.ng/', '_blank', 'noopener,noreferrer');
+    try {
+      await navigator.clipboard.writeText(input.nafdac);
+      copyStatus.textContent = 'Official NAPAMS opened and the NAFDAC number was copied.';
+    } catch {
+      copyStatus.textContent = 'Official NAPAMS opened. Copy the NAFDAC number manually if it was not copied.';
+    }
+  });
+
+  const form = document.getElementById('napams-cache-form');
+  form?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const button = form.querySelector('button[type=submit]');
+    const status = document.getElementById('napams-cache-status');
+    const name = document.getElementById('cache-name').value.trim();
+    const manufacturer = document.getElementById('cache-manufacturer').value.trim();
+    const napamsStatus = document.getElementById('cache-status').value;
+    button.disabled = true;
+    status.textContent = 'Saving this result locally…';
+
+    try {
+      const response = await fetch('/api/napams/cache', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nafdac: input.nafdac,
+          product_name: name,
+          manufacturer,
+          status: napamsStatus,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'cache_failed');
+      els.nafdac.value = input.nafdac;
+      els.name.value = name;
+      els.mfr.value = manufacturer;
+      status.textContent = 'Saved locally. Checking the product again…';
+      await submitVerify();
+    } catch (error) {
+      status.textContent = `Could not save this result: ${error.message}`;
+      button.disabled = false;
+    }
+  });
 }
 
 function rowsFor(record) {
@@ -349,6 +433,7 @@ function rowsFor(record) {
     ['Category', record.category],
     ['Form', record.form],
     ['Strength', record.strength],
+    ['Source', record.source === 'napams_manual' ? 'NAPAMS manual cache' : 'Greenbook snapshot'],
   ];
   return rows
     .filter(([, value]) => value !== null && value !== undefined && value !== '')

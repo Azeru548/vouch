@@ -3,11 +3,12 @@ const { DatabaseSync } = require('node:sqlite');
 const fuzz = require('fuzzball');
 const fs = require('fs');
 const path = require('path');
-const { databasePath: DB_PATH, port: PORT, visionModel: VISION_MODEL } = require('./config');
+const { databasePath: DB_PATH, cachePath: CACHE_PATH, port: PORT, visionModel: VISION_MODEL } = require('./config');
 
 const WEB_DIR = path.join(__dirname, 'web');
 const GROQ_KEY = process.env.GROQ_API_KEY || '';
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const NAPAMS_URL = 'https://registration.nafdac.gov.ng/';
 
 const NAFDAC_RE = /^[A-Z0-9]{1,3}-\d{3,6}$/i;
 
@@ -16,6 +17,23 @@ if (!fs.existsSync(DB_PATH)) {
 }
 
 const db = new DatabaseSync(DB_PATH, { readOnly: true });
+const cacheDb = new DatabaseSync(CACHE_PATH);
+cacheDb.exec(`
+  CREATE TABLE IF NOT EXISTS napams_cache (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nafdac TEXT NOT NULL,
+    product_name TEXT NOT NULL,
+    manufacturer TEXT NOT NULL DEFAULT '',
+    applicant TEXT,
+    category TEXT,
+    status TEXT NOT NULL CHECK (status IN ('Active', 'Inactive')),
+    source TEXT NOT NULL DEFAULT 'napams_manual',
+    checked_at TEXT NOT NULL,
+    notes TEXT,
+    UNIQUE (nafdac, product_name, manufacturer)
+  );
+  CREATE INDEX IF NOT EXISTS idx_napams_cache_nafdac ON napams_cache (nafdac);
+`);
 
 const app = express();
 app.disable('x-powered-by');
@@ -101,7 +119,47 @@ app.post('/api/extract', async (req, res) => {
 });
 
 app.get('/api/config', (req, res) => {
-  res.json({ vision_enabled: Boolean(GROQ_KEY), vision_model: VISION_MODEL });
+  res.json({
+    vision_enabled: Boolean(GROQ_KEY),
+    vision_model: VISION_MODEL,
+    napams_url: NAPAMS_URL,
+    local_cache_enabled: true,
+  });
+});
+
+app.post('/api/napams/cache', (req, res) => {
+  const nafdac = String(req.body?.nafdac || '').trim();
+  const productName = String(req.body?.product_name || '').trim();
+  const manufacturer = String(req.body?.manufacturer || '').trim();
+  const applicant = String(req.body?.applicant || '').trim() || null;
+  const category = String(req.body?.category || '').trim() || null;
+  const notes = String(req.body?.notes || '').trim() || null;
+  const status = String(req.body?.status || '').trim();
+
+  if (!nafdac || !productName || !['Active', 'Inactive'].includes(status)) {
+    return res.status(400).json({ error: 'nafdac, product_name, and a valid status are required' });
+  }
+  if (nafdac.length > 32 || productName.length > 200 || manufacturer.length > 200 || String(applicant ?? '').length > 200 || String(category ?? '').length > 200 || String(notes ?? '').length > 500) {
+    return res.status(400).json({ error: 'input_too_long' });
+  }
+
+  const checkedAt = new Date().toISOString();
+  cacheDb.prepare(`
+    INSERT INTO napams_cache (nafdac, product_name, manufacturer, applicant, category, status, source, checked_at, notes)
+    VALUES (?, ?, ?, ?, ?, ?, 'napams_manual', ?, ?)
+    ON CONFLICT (nafdac, product_name, manufacturer) DO UPDATE SET
+      applicant = excluded.applicant,
+      category = excluded.category,
+      status = excluded.status,
+      source = excluded.source,
+      checked_at = excluded.checked_at,
+      notes = excluded.notes
+  `).run(nafdac, productName, manufacturer, applicant, category, status, checkedAt, notes);
+
+  res.status(201).json({
+    ok: true,
+    record: { nafdac, product_name: productName, manufacturer, status, source: 'napams_manual', checked_at: checkedAt },
+  });
 });
 
 app.get('/api/health', (req, res) => {
@@ -118,10 +176,16 @@ function normalizeProductName(name) {
     .trim();
 }
 
-const selectCands = db.prepare(
+const selectGreenbook = db.prepare(
   `SELECT id, nafdac, product_name, strength, form, route, applicant,
           manufacturer, category, approval_date, expiry_date, status
    FROM products WHERE nafdac = ? COLLATE NOCASE`
+);
+const selectNapamsCache = cacheDb.prepare(
+  `SELECT id, nafdac, product_name, NULL AS strength, NULL AS form, NULL AS route,
+          applicant, manufacturer, category, NULL AS approval_date, NULL AS expiry_date,
+          status, source, checked_at AS source_checked_at
+   FROM napams_cache WHERE nafdac = ? COLLATE NOCASE`
 );
 
 app.get('/verify', (req, res) => {
@@ -137,7 +201,11 @@ app.get('/verify', (req, res) => {
     return res.status(400).json({ error: 'input_too_long' });
   }
 
-  const rows = selectCands.all(String(nafdac).trim());
+  const normalizedNafdac = String(nafdac).trim();
+  const rows = [
+    ...selectGreenbook.all(normalizedNafdac).map((row) => ({ ...row, source: 'greenbook', source_checked_at: null })),
+    ...selectNapamsCache.all(normalizedNafdac),
+  ];
   if (rows.length === 0) {
     return res.json({ status: 'not_found', nafdac });
   }
@@ -206,6 +274,8 @@ app.get('/verify', (req, res) => {
       approval_date: best.approval_date,
       expiry_date: best.expiry_date,
       status: best.status,
+      source: best.source,
+      source_checked_at: best.source_checked_at,
     },
     score: best.name_score,
   };

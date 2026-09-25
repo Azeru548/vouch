@@ -703,6 +703,117 @@ body {
   animation: load-line 1.2s ease-in-out infinite alternate;
 }
 
+.napams-panel {
+  margin-top: 1.15rem;
+  padding: 1rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-small);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.napams-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.napams-panel h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
+}
+
+.napams-panel p {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+.napams-copy-status,
+.napams-cache-status {
+  min-height: 1.25rem;
+  color: var(--green-800) !important;
+  font-size: 0.78rem !important;
+  font-weight: 650;
+}
+
+.napams-form {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--line);
+}
+
+.napams-form-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.napams-form-heading strong {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+
+.napams-form-heading span {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.napams-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.napams-fields label {
+  display: grid;
+  gap: 0.3rem;
+  color: var(--ink-soft);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.napams-fields label span {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.napams-fields input,
+.napams-fields select {
+  width: 100%;
+  min-height: 42px;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  color: var(--ink);
+  background: #fff;
+  font: inherit;
+  font-size: 0.82rem;
+}
+
+.napams-fields input[readonly] {
+  color: var(--muted);
+  background: var(--paper);
+}
+
+.napams-fields input:focus,
+.napams-fields select:focus {
+  border-color: var(--green-600);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(20, 115, 76, 0.12);
+}
+
+.napams-form .btn {
+  justify-self: start;
+}
+
 .report-note {
   padding: 0.75rem 0.85rem;
   border: 1px solid var(--line);
@@ -848,6 +959,20 @@ body {
   .result-head {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .napams-panel-head,
+  .napams-form-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .napams-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .napams-form .btn {
+    width: 100%;
   }
 
   .result-meta {

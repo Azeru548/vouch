@@ -3,10 +3,30 @@ const { chromium } = require('playwright');
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-const BASE = 'http://127.0.0.1:3777';
+
+async function stopServer(server) {
+  if (server.exitCode !== null) return;
+  await new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      resolve();
+    };
+    const timeout = setTimeout(finish, 2000);
+    server.once('exit', finish);
+    server.kill();
+  });
+}
+
+const PORT = 38000 + (process.pid % 1000);
+const BASE = `http://127.0.0.1:${PORT}`;
 const OUT = path.join(__dirname, '..', 'screenshots');
 const PHOTO = path.join(__dirname, '..', 'assets', 'sharp-sample-image.jpg');
+const CACHE_PATH = path.join(os.tmpdir(), `vouch-e2e-cache-${process.pid}.db`);
 
 async function waitForServer() {
   for (let attempt = 0; attempt < 80; attempt++) {
@@ -45,7 +65,7 @@ async function verify(page, nafdac, productName) {
   fs.mkdirSync(OUT, { recursive: true });
   const server = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], {
     stdio: 'ignore',
-    env: { ...process.env, GROQ_API_KEY: '' },
+    env: { ...process.env, PORT: String(PORT), GROQ_API_KEY: '', CACHE_DATABASE_PATH: CACHE_PATH },
   });
   await waitForServer();
 
@@ -84,7 +104,7 @@ async function verify(page, nafdac, productName) {
       const resultClass = await verify(page, nafdac, productName);
       assert.match(resultClass, new RegExp(expectedClass));
       if (expectedClass === 'r-mismatch' || expectedClass === 'r-notfound') {
-        assert.match(await page.locator('.report-note').innerText(), /reporting is planned/i);
+        assert.match(await page.locator('.napams-panel').innerText(), /official NAPAMS record/i);
       }
     }
 
@@ -98,7 +118,8 @@ async function verify(page, nafdac, productName) {
     console.log('Desktop and mobile browser checks passed');
   } finally {
     await browser.close();
-    server.kill();
+    await stopServer(server);
+    fs.rmSync(CACHE_PATH, { force: true });
   }
 })().catch((error) => {
   console.error(error);
