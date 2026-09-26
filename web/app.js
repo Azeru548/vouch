@@ -9,6 +9,7 @@ const els = {
   ocrStatus: $('#ocr-status'),
   visionBanner: $('#vision-banner'),
   form: $('#verify-form'),
+  country: $('#in-country'),
   nafdac: $('#in-nafdac'),
   name: $('#in-name'),
   mfr: $('#in-mfr'),
@@ -19,6 +20,20 @@ const els = {
 };
 
 const NAFDAC_RE = /^[A-Z0-9]{1,3}-\d{3,6}$/i;
+const PPB_RE = /^[A-Z0-9][A-Z0-9/.-]{2,31}$/i;
+
+function sessionId() {
+  try {
+    const stored = window.localStorage.getItem('vouch-session-id');
+    if (stored) return stored;
+  } catch {}
+  const fresh = window.crypto?.randomUUID ? window.crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  try {
+    window.localStorage.setItem('vouch-session-id', fresh);
+  } catch {}
+  return fresh;
+}
+
 let visionEnabled = false;
 let activeCamera = null;
 
@@ -155,6 +170,7 @@ async function handleImage(dataUrl) {
   }
 
   els.preview.src = optimizedImage;
+  document.getElementById('report-photo')?.removeAttribute('disabled');
 
   if (!visionEnabled) {
     els.previewWrap.classList.remove('is-reading');
@@ -223,10 +239,14 @@ async function submitVerify() {
   const nafdac = els.nafdac.value.trim();
   const productName = els.name.value.trim();
   const manufacturer = els.mfr.value.trim();
+  const country = els.country.value;
 
   if (!els.form.reportValidity()) return;
-  if (!NAFDAC_RE.test(nafdac)) {
-    showLocalError('Enter the NAFDAC number in the format shown on the pack, such as A11-0009.');
+  const validNumber = country === 'KE' ? PPB_RE.test(nafdac) : NAFDAC_RE.test(nafdac);
+  if (!validNumber) {
+    showLocalError(country === 'KE'
+      ? 'Enter the Kenya PPB registration number exactly as printed on the pack.'
+      : 'Enter the NAFDAC number in the format shown on the pack, such as A11-0009.');
     els.nafdac.focus();
     return;
   }
@@ -240,14 +260,14 @@ async function submitVerify() {
   els.verifyButton.disabled = true;
   els.verifyLabel.textContent = 'Checking registration…';
 
-  const query = new URLSearchParams({ nafdac, product_name: productName });
+  const query = new URLSearchParams({ nafdac, product_name: productName, country });
   if (manufacturer) query.set('manufacturer', manufacturer);
 
   try {
     const response = await fetch(`/verify?${query}`);
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'verification_failed');
-    paint(result, { nafdac, productName, manufacturer });
+    paint(result, { nafdac, productName, manufacturer, country });
   } catch (error) {
     showServiceError(error);
   } finally {
@@ -309,9 +329,16 @@ function paint(result, input) {
       ? 'This product was manually confirmed inactive on NAPAMS'
       : 'This product was manually confirmed on NAPAMS';
   }
-  const parts = [
+  const parts = [];
+  if (result.hazard) {
+    parts.push(hazardBanner(result.hazard));
+  }
+  if (result.community_flag?.flagged) {
+    parts.push(communityBanner(result.community_flag));
+  }
+  parts.push(
     `<div class="result-head"><span class="result-badge">${treatment.badge}</span><h2>${escapeHtml(treatment.title)}</h2></div>`,
-  ];
+  );
 
   if (result.status === 'not_found') {
     parts.push(
@@ -338,13 +365,39 @@ function paint(result, input) {
     }
   }
 
-  if (result.status === 'mismatch' || result.status === 'not_found') {
+  if (input.country === 'NG' && (result.status === 'mismatch' || result.status === 'not_found')) {
     parts.push(napamsPanel(input));
+  }
+  if (result.status === 'mismatch' || result.status === 'not_found') {
+    parts.push(reportPanel(input, result));
   }
 
   parts.push('<p class="result-footnote">This result reflects the local registry snapshot and does not assess product quality or authenticity beyond the available registration data.</p>');
   setResult(`<div class="result ${treatment.className}">${parts.join('')}</div>`);
   setupNapamsPanel(input);
+  setupReportPanel(input, result);
+}
+
+function hazardBanner(hazard) {
+  const batches = Array.isArray(hazard.batches) && hazard.batches.length > 0
+    ? hazard.batches.map(escapeHtml).join(', ')
+    : 'see alert for details';
+  const type = hazard.alert_type === 'recall' ? 'Recall' : 'Safety alert';
+  return `<div class="hazard-alert" role="alert">
+    <strong>NAFDAC ${escapeHtml(type)} No. ${escapeHtml(hazard.alert_number)}</strong>
+    <span>${escapeHtml(hazard.hazard)}</span>
+    <span>Batches: ${batches} · Issued ${escapeHtml(hazard.alert_date)} · <a href="${escapeHtml(hazard.source_url)}" target="_blank" rel="noopener">Official alert</a></span>
+  </div>`;
+}
+
+function communityBanner(flag) {
+  const locations = Array.isArray(flag.recent_locations) && flag.recent_locations.length > 0
+    ? flag.recent_locations.map(escapeHtml).join(', ')
+    : 'multiple areas';
+  return `<div class="community-flag" role="alert">
+    <strong>Community warning: ${flag.report_count} reports in the last 30 days</strong>
+    <span>Recent areas: ${locations}. These are user reports, not a regulatory finding.</span>
+  </div>`;
 }
 
 function napamsPanel(input) {
@@ -423,6 +476,102 @@ async function setupNapamsPanel(input) {
   });
 }
 
+function reportPanel(input) {
+  const photoAvailable = Boolean(els.preview.src);
+  return `<section class="report-panel" aria-labelledby="report-title">
+    <h3 id="report-title">Report this product</h3>
+    <p>Reports are counted for this registration number and country. A community warning appears after 3 reports in 30 days.</p>
+    <form id="report-form" class="report-form">
+      <div class="report-fields">
+        <label>Area<input id="report-area" type="text" maxlength="120" required placeholder="e.g. Ikeja, Lagos"></label>
+        <label>What did you notice?<textarea id="report-note" maxlength="500" required placeholder="e.g. Seal looked tampered"></textarea></label>
+        <label class="report-check"><input id="report-photo" type="checkbox" ${photoAvailable ? '' : 'disabled'}> Attach the current product photo</label>
+      </div>
+      <div class="report-actions">
+        <button class="btn btn-primary" type="submit">Submit report</button>
+        <button id="report-location" class="btn btn-ghost" type="button">Use my location</button>
+      </div>
+      <p id="report-status" class="report-status" role="status"></p>
+    </form>
+  </section>`;
+}
+
+async function setupReportPanel(input, result) {
+  const form = document.getElementById('report-form');
+  if (!form) return;
+  const status = document.getElementById('report-status');
+  let coords = null;
+
+  document.getElementById('report-location')?.addEventListener('click', () => {
+    if (!('geolocation' in navigator)) {
+      status.textContent = 'Location is not available in this browser.';
+      return;
+    }
+    status.textContent = 'Reading your approximate location…';
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        coords = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+        status.textContent = 'Location attached. You can still edit the area name.';
+      },
+      () => {
+        status.textContent = 'Location was unavailable. You can still submit the area name.';
+      },
+      { timeout: 8000 },
+    );
+  });
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const button = form.querySelector('button[type=submit]');
+    const area = document.getElementById('report-area').value.trim();
+    const note = document.getElementById('report-note').value.trim();
+    const attachPhoto = document.getElementById('report-photo')?.checked && Boolean(els.preview.src);
+    button.disabled = true;
+    status.textContent = 'Submitting your report…';
+
+    try {
+      const record = result.matched || result.closest_match || null;
+      const response = await fetch('/report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nafdac_number: input.nafdac,
+          country: input.country,
+          location_area: area,
+          note,
+          photo: attachPhoto ? els.preview.src : undefined,
+          latitude: coords?.latitude ?? undefined,
+          longitude: coords?.longitude ?? undefined,
+          session_id: sessionId(),
+          scan_result: {
+            status: result.status,
+            score: typeof result.score === 'number' ? result.score : null,
+            country: input.country,
+            product_name: input.productName,
+            matched: record ? {
+              product_name: record.product_name,
+              manufacturer: record.manufacturer,
+              country: record.country,
+              source: record.source,
+            } : null,
+          },
+        }),
+      });
+      const body = await response.json();
+      if (!response.ok) {
+        throw new Error(body.error === 'report_rate_limited'
+          ? 'Too many reports from this device. Try again later.'
+          : body.error || 'report_failed');
+      }
+      status.textContent = `Report saved. Checking this product again…`;
+      await submitVerify();
+    } catch (error) {
+      status.textContent = `Could not submit this report: ${error.message}`;
+      button.disabled = false;
+    }
+  });
+}
+
 function rowsFor(record) {
   const rows = [
     ['Product name', record.product_name],
@@ -433,13 +582,46 @@ function rowsFor(record) {
     ['Category', record.category],
     ['Form', record.form],
     ['Strength', record.strength],
-    ['Source', record.source === 'napams_manual' ? 'NAPAMS manual cache' : 'Greenbook snapshot'],
+    ['Country', record.country === 'KE' ? 'Kenya (PPB)' : 'Nigeria (NAFDAC)'],
+    ['Source', record.source === 'napams_manual' ? 'NAPAMS manual cache' : record.country === 'KE' ? 'Kenya PPB snapshot' : 'Greenbook snapshot'],
   ];
   return rows
     .filter(([, value]) => value !== null && value !== undefined && value !== '')
     .map(([label, value]) => `<li><span class="k">${escapeHtml(label)}</span><span class="v">${escapeHtml(value)}</span></li>`)
     .join('');
 }
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
+
+let installPrompt = null;
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault();
+  installPrompt = event;
+  document.getElementById('install-cta')?.classList.remove('hidden');
+});
+
+document.getElementById('btn-install')?.addEventListener('click', async () => {
+  if (!installPrompt) return;
+  installPrompt.prompt();
+  installPrompt = null;
+  document.getElementById('install-cta')?.classList.add('hidden');
+});
+
+window.addEventListener('appinstalled', () => {
+  installPrompt = null;
+  document.getElementById('install-cta')?.classList.add('hidden');
+});
+
+function syncOfflineNote() {
+  document.getElementById('offline-note')?.classList.toggle('hidden', navigator.onLine);
+}
+window.addEventListener('online', syncOfflineNote);
+window.addEventListener('offline', syncOfflineNote);
+syncOfflineNote();
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (character) => ({

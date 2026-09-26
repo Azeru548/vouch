@@ -7,8 +7,16 @@
     "start": "node server.js",
     "test": "node scripts/test_verify.js && node scripts/smoke_test.js",
     "ingest": "node scripts/ingest.js",
+    "ingest:kenya": "node scripts/ingest_kenya.js",
+    "migrate:country": "node scripts/migrate_country.js",
+    "seed:reports": "node scripts/seed_reports.js",
+    "seed:hazards": "node scripts/seed_hazards.js",
     "enrich:manufacturers": "node scripts/enrich_manufacturers.js",
     "test:extract": "node scripts/test_extract.js",
+    "test:kenya": "node scripts/test_kenya.js",
+    "test:reports": "node scripts/test_reports.js",
+    "test:hazards": "node scripts/test_hazards.js",
+    "test:report-ui": "node scripts/test_report_ui.js",
     "test:e2e": "node scripts/e2e_flow.js"
   },
   "keywords": [
@@ -23,6 +31,7 @@
     "node": ">=24"
   },
   "dependencies": {
+    "cheerio": "^1.1.2",
     "express": "^5.2.1",
     "fuzzball": "^2.2.6"
   },

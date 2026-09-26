@@ -2,35 +2,34 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0b5d3b">
-  <meta name="description" content="Check product packaging details against a local NAFDAC registration snapshot.">
-  <title>Vouch — NAFDAC Product Check</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#23215f">
+  <meta name="description" content="Check product packaging details against local NAFDAC and Kenya PPB registration snapshots.">
+  <title>Vouch — Product Registration Check</title>
   <link rel="stylesheet" href="/styles.css">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="/icons/seal.svg">
+  <link rel="apple-touch-icon" href="/icons/seal-180.png">
 </head>
 <body>
   <header class="topbar">
     <div class="topbar-inner">
       <a class="brand" href="/" aria-label="Vouch home">
-        <span class="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 32 32" role="img">
-            <path d="M16 3.5 27 7.8v7.6c0 6.1-4.2 10.7-11 13.1C9.2 26.1 5 21.5 5 15.4V7.8L16 3.5Z"/>
-            <path d="m10.5 16 3.4 3.4 7.8-8"/>
-          </svg>
-        </span>
+        <span class="brand-mark" aria-hidden="true">V</span>
         <span>
           <strong>Vouch</strong>
-          <small>NAFDAC product check</small>
+          <small>Product registration check</small>
         </span>
       </a>
       <div class="registry-note">
         <span class="registry-pulse" aria-hidden="true"></span>
         Registry-based verification
+        <a class="map-link" href="/map.html">Report map</a>
       </div>
     </div>
     <div class="hero-copy">
       <h1>Check the pack before you trust it.</h1>
-      <p>Read the registration number, confirm the product details, and compare them with a local NAFDAC registry snapshot.</p>
+      <p>Read the registration number, confirm the product details, and compare them with a local product registry snapshot.</p>
     </div>
     <p id="vision-banner" class="vision-banner hidden" role="status"></p>
   </header>
@@ -59,7 +58,7 @@
 
       <div class="privacy-note">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2M5 10h14v10H5V10Z"/></svg>
-        <p><strong>Your photo stays optional.</strong> When photo reading is enabled, the selected image is sent to the configured vision service to locate the NAFDAC number.</p>
+        <p><strong>Your photo stays optional.</strong> When photo reading is enabled, the selected image is sent to the configured vision service to locate the registration number.</p>
       </div>
 
       <div id="preview-wrap" class="preview-wrap hidden">
@@ -67,6 +66,14 @@
         <button id="btn-clear-image" class="btn btn-ghost" type="button">Remove photo</button>
       </div>
       <div id="ocr-status" class="ocr-status hidden" role="status" aria-live="polite"></div>
+
+      <div class="perforation" aria-hidden="true"></div>
+
+      <div id="install-cta" class="install-cta hidden">
+        <p>Install Vouch for faster checks from your home screen.</p>
+        <button id="btn-install" class="btn btn-secondary" type="button">Install</button>
+      </div>
+      <p id="offline-note" class="offline-note hidden" role="status">You are offline. The app opens, but checks need a connection.</p>
     </section>
 
     <section class="card verify-card" aria-labelledby="verify-title">
@@ -74,25 +81,33 @@
         <span class="step-number" aria-hidden="true">2</span>
         <div>
           <h2 id="verify-title">Confirm the product</h2>
-          <p id="confirm-hint">Enter the NAFDAC number and product name exactly as printed on the pack.</p>
+          <p id="confirm-hint">Enter the registration number and product name exactly as printed on the pack.</p>
         </div>
       </div>
 
       <form id="verify-form" autocomplete="off" novalidate>
         <div class="field">
-          <label for="in-nafdac">NAFDAC registration number <span class="required">Required</span></label>
-          <input id="in-nafdac" name="nafdac" type="text" placeholder="e.g. A11-0009" spellcheck="false" maxlength="32" required aria-describedby="nafdac-help">
+          <label for="in-country">Country registry <span class="required">Required</span></label>
+          <select id="in-country" name="country">
+            <option value="NG">Nigeria — NAFDAC</option>
+            <option value="KE">Kenya — PPB</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="in-nafdac">Registration number <span class="required">Required</span></label>
+          <input id="in-nafdac" name="nafdac" type="text" placeholder="e.g. A11-0009" spellcheck="false" maxlength="32" required aria-describedby="nafdac-help" inputmode="text" enterkeyhint="next">
           <span id="nafdac-help" class="field-help">You can scan this from the pack or type it.</span>
         </div>
 
         <div class="field">
           <label for="in-name">Product name <span class="required">Required</span></label>
-          <input id="in-name" name="product_name" type="text" placeholder="e.g. Alben Paracetamol Drops" spellcheck="false" maxlength="200" required>
+          <input id="in-name" name="product_name" type="text" placeholder="e.g. Alben Paracetamol Drops" spellcheck="false" maxlength="200" required enterkeyhint="next">
         </div>
 
         <div class="field">
           <label for="in-mfr">Manufacturer <span class="optional">Optional, but improves accuracy</span></label>
-          <input id="in-mfr" name="manufacturer" type="text" placeholder="e.g. Alben Healthcare Industries Limited" spellcheck="false" maxlength="200">
+          <input id="in-mfr" name="manufacturer" type="text" placeholder="e.g. Alben Healthcare Industries Limited" spellcheck="false" maxlength="200" enterkeyhint="go">
         </div>
 
         <button id="verify-button" class="btn btn-primary btn-block" type="submit">
@@ -106,7 +121,7 @@
 
     <aside class="trust-strip" aria-label="Verification scope">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 6v5.5c0 4.4-3 7.7-8 9.5-5-1.8-8-5.1-8-9.5V6l8-3Z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></svg>
-      <p><strong>Know the limit of the check.</strong> Vouch compares your details with a local registry snapshot. A result does not replace professional medical advice or guarantee the product’s quality.</p>
+      <p><strong>Know the limit of the check.</strong> Vouch compares your details with a local registry snapshot. A result does not replace professional medical advice or guarantee the product’s quality. See the <a href="/map.html">community report map</a>.</p>
     </aside>
   </main>
 

@@ -4,6 +4,8 @@ const fuzz = require('fuzzball');
 const fs = require('fs');
 const path = require('path');
 const { databasePath: DB_PATH, cachePath: CACHE_PATH, port: PORT, visionModel: VISION_MODEL } = require('./config');
+const { ensureReportsTable } = require('./scripts/reports_schema');
+const { ensureHazardTable } = require('./scripts/hazard_schema');
 
 const WEB_DIR = path.join(__dirname, 'web');
 const GROQ_KEY = process.env.GROQ_API_KEY || '';
@@ -17,6 +19,12 @@ if (!fs.existsSync(DB_PATH)) {
 }
 
 const db = new DatabaseSync(DB_PATH, { readOnly: true });
+if (!db.prepare('PRAGMA table_info(products)').all().some((column) => column.name === 'country')) {
+  throw new Error('Database schema is missing products.country. Run npm run migrate:country.');
+}
+const reportsDb = new DatabaseSync(DB_PATH);
+ensureReportsTable(reportsDb);
+ensureHazardTable(reportsDb);
 const cacheDb = new DatabaseSync(CACHE_PATH);
 cacheDb.exec(`
   CREATE TABLE IF NOT EXISTS napams_cache (
@@ -30,16 +38,20 @@ cacheDb.exec(`
     source TEXT NOT NULL DEFAULT 'napams_manual',
     checked_at TEXT NOT NULL,
     notes TEXT,
+    country TEXT NOT NULL DEFAULT 'NG',
     UNIQUE (nafdac, product_name, manufacturer)
   );
-  CREATE INDEX IF NOT EXISTS idx_napams_cache_nafdac ON napams_cache (nafdac);
 `);
+if (!cacheDb.prepare('PRAGMA table_info(napams_cache)').all().some((column) => column.name === 'country')) {
+  cacheDb.exec("ALTER TABLE napams_cache ADD COLUMN country TEXT NOT NULL DEFAULT 'NG'");
+}
+cacheDb.exec('CREATE INDEX IF NOT EXISTS idx_napams_cache_country_nafdac ON napams_cache (country, nafdac)');
 
 const app = express();
 app.disable('x-powered-by');
 app.use((req, res, next) => {
   res.set({
-    'Content-Security-Policy': "default-src 'self'; img-src 'self' data: blob:; script-src 'self'; style-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
+    'Content-Security-Policy': "default-src 'self'; img-src 'self' data: blob: https://*.tile.openstreetmap.org; script-src 'self' https://unpkg.com; style-src 'self' https://unpkg.com; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
     'Permissions-Policy': 'camera=(self), microphone=()',
     'Referrer-Policy': 'no-referrer',
     'X-Content-Type-Options': 'nosniff',
@@ -127,6 +139,163 @@ app.get('/api/config', (req, res) => {
   });
 });
 
+const REPORT_RATE_LIMIT = 5;
+const REPORT_RATE_WINDOW_MS = 60 * 60 * 1000;
+const COMMUNITY_FLAG_THRESHOLD = 3;
+const COMMUNITY_FLAG_WINDOW_DAYS = 30;
+
+function isPlainObject(value) {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function toHazard(row) {
+  let batches = [];
+  try {
+    const parsed = JSON.parse(row.batches || '[]');
+    if (Array.isArray(parsed)) batches = parsed.map(String);
+  } catch {}
+  return {
+    alert_number: row.alert_number,
+    hazard: row.hazard,
+    alert_type: row.alert_type,
+    source_url: row.source_url,
+    alert_date: row.alert_date,
+    batches,
+  };
+}
+
+function hazardMatch(nafdacNumber, normalizedName) {
+  const numbered = reportsDb.prepare(
+    'SELECT alert_number, hazard, alert_type, source_url, alert_date, batches FROM hazard_alerts WHERE nafdac_number = ? COLLATE NOCASE LIMIT 1'
+  ).get(nafdacNumber);
+  if (numbered) return toHazard(numbered);
+  if (!normalizedName) return undefined;
+  const unnamed = reportsDb.prepare(
+    'SELECT alert_number, product_name, hazard, alert_type, source_url, alert_date, batches FROM hazard_alerts WHERE nafdac_number IS NULL'
+  ).all();
+  let best = null;
+  for (const row of unnamed) {
+    const score = fuzz.token_set_ratio(normalizedName, normalizeProductName(row.product_name));
+    if (score >= 85 && (!best || score > best.score)) best = { row, score };
+  }
+  return best ? toHazard(best.row) : undefined;
+}
+
+function communityFlag(nafdacNumber, country) {
+  const cutoff = new Date(Date.now() - COMMUNITY_FLAG_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const rows = reportsDb.prepare(`
+    SELECT location_area
+    FROM reports
+    WHERE nafdac_number = ? COLLATE NOCASE AND country = ? AND created_at >= ?
+    ORDER BY created_at DESC
+  `).all(nafdacNumber, country, cutoff);
+  if (rows.length < COMMUNITY_FLAG_THRESHOLD) return undefined;
+  return {
+    flagged: true,
+    report_count: rows.length,
+    recent_locations: [...new Set(rows.map((row) => row.location_area))].slice(0, 5),
+  };
+}
+
+app.post('/report', (req, res) => {
+  const nafdacNumber = String(req.body?.nafdac_number || '').trim();
+  const country = String(req.body?.country || '').trim().toUpperCase();
+  const locationArea = String(req.body?.location_area || '').trim();
+  const note = String(req.body?.note || '').trim();
+  const photo = req.body?.photo;
+  const latitude = req.body?.latitude ?? null;
+  const longitude = req.body?.longitude ?? null;
+  const sessionId = String(req.body?.session_id || '').trim();
+  const scanResult = req.body?.scan_result;
+
+  if (!nafdacNumber || !['NG', 'KE'].includes(country) || !locationArea || !note || !sessionId || !isPlainObject(scanResult)) {
+    return res.status(400).json({ error: 'nafdac_number, country, location_area, note, session_id, and scan_result are required' });
+  }
+  if (nafdacNumber.length > 32 || locationArea.length > 120 || note.length > 500 || sessionId.length > 64) {
+    return res.status(400).json({ error: 'input_too_long' });
+  }
+  if (!/^[A-Za-z0-9_-]{8,64}$/.test(sessionId)) {
+    return res.status(400).json({ error: 'invalid_session_id' });
+  }
+  if ((latitude === null) !== (longitude === null)) {
+    return res.status(400).json({ error: 'latitude and longitude must be provided together' });
+  }
+  if (latitude !== null && (!Number.isFinite(Number(latitude)) || !Number.isFinite(Number(longitude)))) {
+    return res.status(400).json({ error: 'invalid_coordinates' });
+  }
+  const lat = latitude === null ? null : Number(latitude);
+  const lng = longitude === null ? null : Number(longitude);
+  if (lat !== null && (lat < -90 || lat > 90 || lng < -180 || lng > 180)) {
+    return res.status(400).json({ error: 'invalid_coordinates' });
+  }
+  if (photo !== undefined && photo !== null && photo !== '') {
+    if (typeof photo !== 'string' || !photo.startsWith('data:image/') || photo.length > 6000000) {
+      return res.status(400).json({ error: 'invalid_photo' });
+    }
+  }
+  let scanResultText;
+  try {
+    scanResultText = JSON.stringify(scanResult);
+  } catch {
+    return res.status(400).json({ error: 'invalid_scan_result' });
+  }
+  if (scanResultText.length > 25000) {
+    return res.status(400).json({ error: 'scan_result_too_large' });
+  }
+
+  const createdAt = new Date().toISOString();
+  const windowStart = new Date(Date.now() - REPORT_RATE_WINDOW_MS).toISOString();
+  const recentCount = reportsDb.prepare(
+    'SELECT COUNT(*) AS count FROM reports WHERE session_id = ? AND created_at >= ?'
+  ).get(sessionId, windowStart).count;
+  if (recentCount >= REPORT_RATE_LIMIT) {
+    return res.status(429).json({ error: 'report_rate_limited', detail: 'Too many reports from this session. Try again later.' });
+  }
+
+  const info = reportsDb.prepare(`
+    INSERT INTO reports (nafdac_number, country, location_area, note, photo_url, scan_result, latitude, longitude, session_id, created_at, is_seed)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+  `).run(nafdacNumber, country, locationArea, note, photo || null, scanResultText, lat, lng, sessionId, createdAt);
+  res.status(201).json({ ok: true, id: Number(info.lastInsertRowid), created_at: createdAt });
+});
+
+app.get('/api/reports', (req, res) => {
+  const country = String(req.query.country || 'ALL').trim().toUpperCase();
+  if (!['ALL', 'NG', 'KE'].includes(country)) {
+    return res.status(400).json({ error: 'country must be ALL, NG, or KE' });
+  }
+  const rows = country === 'ALL'
+    ? reportsDb.prepare(`
+      SELECT id, nafdac_number, country, location_area, note, latitude, longitude, created_at, is_seed, scan_result
+      FROM reports ORDER BY created_at DESC LIMIT 500
+    `).all()
+    : reportsDb.prepare(`
+      SELECT id, nafdac_number, country, location_area, note, latitude, longitude, created_at, is_seed, scan_result
+      FROM reports WHERE country = ? ORDER BY created_at DESC LIMIT 500
+    `).all(country);
+  res.json({
+    reports: rows.map((row) => {
+      let scanStatus = null;
+      try {
+        const parsed = JSON.parse(row.scan_result || 'null');
+        if (isPlainObject(parsed) && typeof parsed.status === 'string') scanStatus = parsed.status;
+      } catch {}
+      return {
+        id: row.id,
+        nafdac_number: row.nafdac_number,
+        country: row.country,
+        location_area: row.location_area,
+        note: row.note,
+        latitude: row.latitude,
+        longitude: row.longitude,
+        created_at: row.created_at,
+        is_seed: row.is_seed === 1,
+        scan_status: scanStatus,
+      };
+    }),
+  });
+});
+
 app.post('/api/napams/cache', (req, res) => {
   const nafdac = String(req.body?.nafdac || '').trim();
   const productName = String(req.body?.product_name || '').trim();
@@ -134,9 +303,10 @@ app.post('/api/napams/cache', (req, res) => {
   const applicant = String(req.body?.applicant || '').trim() || null;
   const category = String(req.body?.category || '').trim() || null;
   const notes = String(req.body?.notes || '').trim() || null;
+  const country = String(req.body?.country || 'NG').trim().toUpperCase();
   const status = String(req.body?.status || '').trim();
 
-  if (!nafdac || !productName || !['Active', 'Inactive'].includes(status)) {
+  if (!nafdac || !productName || !['NG', 'KE'].includes(country) || !['Active', 'Inactive'].includes(status)) {
     return res.status(400).json({ error: 'nafdac, product_name, and a valid status are required' });
   }
   if (nafdac.length > 32 || productName.length > 200 || manufacturer.length > 200 || String(applicant ?? '').length > 200 || String(category ?? '').length > 200 || String(notes ?? '').length > 500) {
@@ -145,20 +315,21 @@ app.post('/api/napams/cache', (req, res) => {
 
   const checkedAt = new Date().toISOString();
   cacheDb.prepare(`
-    INSERT INTO napams_cache (nafdac, product_name, manufacturer, applicant, category, status, source, checked_at, notes)
-    VALUES (?, ?, ?, ?, ?, ?, 'napams_manual', ?, ?)
+    INSERT INTO napams_cache (nafdac, product_name, manufacturer, applicant, category, status, source, checked_at, notes, country)
+    VALUES (?, ?, ?, ?, ?, ?, 'napams_manual', ?, ?, ?)
     ON CONFLICT (nafdac, product_name, manufacturer) DO UPDATE SET
       applicant = excluded.applicant,
       category = excluded.category,
       status = excluded.status,
       source = excluded.source,
       checked_at = excluded.checked_at,
-      notes = excluded.notes
-  `).run(nafdac, productName, manufacturer, applicant, category, status, checkedAt, notes);
+      notes = excluded.notes,
+      country = excluded.country
+  `).run(nafdac, productName, manufacturer, applicant, category, status, checkedAt, notes, country);
 
   res.status(201).json({
     ok: true,
-    record: { nafdac, product_name: productName, manufacturer, status, source: 'napams_manual', checked_at: checkedAt },
+    record: { nafdac, product_name: productName, manufacturer, country, status, source: 'napams_manual', checked_at: checkedAt },
   });
 });
 
@@ -178,19 +349,23 @@ function normalizeProductName(name) {
 
 const selectGreenbook = db.prepare(
   `SELECT id, nafdac, product_name, strength, form, route, applicant,
-          manufacturer, category, approval_date, expiry_date, status
-   FROM products WHERE nafdac = ? COLLATE NOCASE`
+          manufacturer, category, approval_date, expiry_date, status, country
+   FROM products WHERE nafdac = ? COLLATE NOCASE AND country = ?`
 );
 const selectNapamsCache = cacheDb.prepare(
   `SELECT id, nafdac, product_name, NULL AS strength, NULL AS form, NULL AS route,
           applicant, manufacturer, category, NULL AS approval_date, NULL AS expiry_date,
-          status, source, checked_at AS source_checked_at
-   FROM napams_cache WHERE nafdac = ? COLLATE NOCASE`
+          status, source, checked_at AS source_checked_at, country
+   FROM napams_cache WHERE nafdac = ? COLLATE NOCASE AND country = ?`
 );
 
 app.get('/verify', (req, res) => {
   const { nafdac, product_name, manufacturer } = req.query;
+  const country = String(req.query.country || 'NG').trim().toUpperCase();
 
+  if (!['NG', 'KE'].includes(country)) {
+    return res.status(400).json({ error: 'country must be NG or KE' });
+  }
   if (!nafdac) {
     return res.status(400).json({ error: 'missing required param: nafdac' });
   }
@@ -203,15 +378,16 @@ app.get('/verify', (req, res) => {
 
   const normalizedNafdac = String(nafdac).trim();
   const rows = [
-    ...selectGreenbook.all(normalizedNafdac).map((row) => ({ ...row, source: 'greenbook', source_checked_at: null })),
-    ...selectNapamsCache.all(normalizedNafdac),
+    ...selectGreenbook.all(normalizedNafdac, country).map((row) => ({ ...row, source: country === 'KE' ? 'kenya_ppb' : 'greenbook', source_checked_at: null })),
+    ...selectNapamsCache.all(normalizedNafdac, country),
   ];
-  if (rows.length === 0) {
-    return res.json({ status: 'not_found', nafdac });
-  }
-
+  const flag = communityFlag(normalizedNafdac, country);
   const normName = normalizeProductName(product_name);
   const normManu = manufacturer != null ? normalizeProductName(manufacturer) : null;
+  const hazard = hazardMatch(normalizedNafdac, normName);
+  if (rows.length === 0) {
+    return res.json({ status: 'not_found', nafdac, country, ...(flag ? { community_flag: flag } : {}), ...(hazard ? { hazard } : {}) });
+  }
 
   const scored = rows.map((row) => {
     const name_score = fuzz.token_set_ratio(normName, normalizeProductName(row.product_name));
@@ -261,6 +437,7 @@ app.get('/verify', (req, res) => {
 
   const payload = {
     status,
+    country,
     [key]: {
       id: best.id,
       nafdac: best.nafdac,
@@ -276,13 +453,14 @@ app.get('/verify', (req, res) => {
       status: best.status,
       source: best.source,
       source_checked_at: best.source_checked_at,
+      country: best.country,
     },
     score: best.name_score,
   };
 
   if (process.env.EXPOSE_VERIFY_DEBUG === 'true') {
     payload.debug = {
-      input: { nafdac, product_name, manufacturer: manufacturer ?? null },
+      input: { nafdac, product_name, manufacturer: manufacturer ?? null, country },
       normalized_input: normName,
       candidate_count: scored.length,
       near_top: nearTop.map((s) => ({
@@ -305,8 +483,20 @@ app.get('/verify', (req, res) => {
 
   if (reason) payload.reason = reason;
   if (message) payload.message = message;
+  if (flag) payload.community_flag = flag;
+  if (hazard) payload.hazard = hazard;
 
   res.json(payload);
+});
+
+app.get('/sw.js', (req, res) => {
+  res.set('Cache-Control', 'no-cache');
+  res.sendFile(path.join(WEB_DIR, 'sw.js'));
+});
+
+app.get('/manifest.webmanifest', (req, res) => {
+  res.type('application/manifest+json');
+  res.sendFile(path.join(WEB_DIR, 'manifest.webmanifest'));
 });
 
 app.use(express.static(WEB_DIR));

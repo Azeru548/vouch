@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#23215f">
+  <meta name="description" content="Map of community product reports in Nigeria and Kenya. Seed/demo clusters are marked.">
+  <title>Vouch — Community Report Map</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="/icons/seal.svg">
+  <link rel="apple-touch-icon" href="/icons/seal-180.png">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+</head>
+<body>
+  <header class="topbar map-topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/" aria-label="Vouch home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" role="img">
+            <path d="M16 3.5 27 7.8v7.6c0 6.1-4.2 10.7-11 13.1C9.2 26.1 5 21.5 5 15.4V7.8L16 3.5Z"/>
+            <path d="m10.5 16 3.4 3.4 7.8-8"/>
+          </svg>
+        </span>
+        <span>
+          <strong>Vouch</strong>
+          <small>Community report map</small>
+        </span>
+      </a>
+      <a class="map-link" href="/">Back to verification</a>
+    </div>
+  </header>
+
+  <main class="map-workspace">
+    <section class="card map-controls" aria-labelledby="map-title">
+      <h1 id="map-title">Community report density</h1>
+      <p>Seed/demo clusters are outlined separately from real community reports.</p>
+      <div class="map-filter">
+        <label for="map-country">Country</label>
+        <select id="map-country">
+          <option value="ALL">Nigeria and Kenya</option>
+          <option value="NG">Nigeria only</option>
+          <option value="KE">Kenya only</option>
+        </select>
+      </div>
+      <p id="map-status" class="map-status" role="status">Loading reports…</p>
+      <ul id="map-areas" class="map-areas"></ul>
+    </section>
+    <section class="card map-panel" aria-label="Report map">
+      <div id="report-map" class="report-map"></div>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/map.js"></script>
+</body>
+</html>

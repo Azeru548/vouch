@@ -55,6 +55,10 @@ Also a `manufacturers(id, name)` reference table (1,420 rows) scraped from `/man
 
 `napams_cache` is a separate writable local SQLite database created at `data/napams_cache.db`. It stores only records the user manually confirms after opening the official NAPAMS verifier: `nafdac`, `product_name`, optional manufacturer/applicant/category/notes, status, `source`, and `checked_at`. It is not a scraped mirror of NAPAMS.
 
+`reports` lives in the main `data/nafdac_products.db`: `id, nafdac_number, country, location_area, note, photo_url, scan_result, latitude, longitude, session_id, created_at, is_seed`. Rows with `is_seed = 1` are DEMO/SEED data only. `POST /report` rate-limits to 5 reports/hour per session. `/verify` adds `community_flag {flagged, report_count, recent_locations}` when a number+country has ≥3 reports in 30 days. `GET /api/reports` exposes non-sensitive report data (no session IDs or photos). The Leaflet/OpenStreetMap density view is at `/map.html`, filterable by country; seed clusters are outlined and labeled as seed/demo.
+
+`hazard_alerts` (same DB) holds 14 manually curated NAFDAC alerts: `alert_number, product_name, nafdac_number (nullable), batches (JSON), hazard, alert_type, manufacturer, source_url, alert_date, in_registry`. `/verify` runs two independent checks on every verdict: number-keyed match, plus fuzzy name match (≥85) against NULL-number rows so unregistered products like Menofix are caught. Hit responses carry `hazard {alert_number, hazard, alert_type, source_url, alert_date, batches}`; omitted otherwise. The hazard banner renders first, above verdict and community flag.
+
 ## The four verdicts
 
 | status | meaning | UI treatment |
@@ -112,6 +116,9 @@ Note: **`AB-102886` is not in the database** (`%102886%` returns 0 rows), so the
 ```powershell
 npm.cmd test                         # 12 asserted /verify cases + smoke/security/cache checks
 npm.cmd run test:e2e                 # Playwright desktop/mobile flow, NAPAMS handoff, all verdicts
+npm.cmd run test:reports             # report API, community flag, rate limit (temp DB)
+npm.cmd run test:report-ui           # UI report submission, threshold flag, map + screenshots (temp DB copy)
+npm.cmd run seed:reports             # 10 DEMO seed reports (5 NG, 5 KE); modifies the configured DB
 npm.cmd run test:extract             # sends each assets/ image through /api/extract
 npm.cmd run ingest                   # re-pull Greenbook (destructive: recreates the DB)
 npm.cmd run enrich:manufacturers     # refresh manufacturer names in the shared DB

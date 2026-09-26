@@ -29,6 +29,11 @@ const staticChecks = [
   ['/', 'text/html'],
   ['/styles.css', 'text/css'],
   ['/app.js', 'javascript'],
+  ['/map.html', 'text/html'],
+  ['/map.js', 'javascript'],
+  ['/manifest.webmanifest', 'manifest'],
+  ['/sw.js', 'javascript'],
+  ['/icons/seal.svg', 'svg'],
   ['/api/config', 'application/json'],
   ['/api/health', 'application/json'],
 ];
