@@ -89,9 +89,13 @@ async function verify(page, nafdac, productName) {
 
     await page.setInputFiles('#file-input', PHOTO);
     await waitForIdle(page);
-    assert.equal(await page.isEnabled('#report-photo'), true);
+    await page.click('.issue-chips .chip:first-child');
+    assert.equal(await page.locator('.wizard-page[data-page="2"]:not(.hidden)').count(), 1);
     await page.fill('#report-area', 'UI Test Area');
     await page.fill('#report-note', 'UI end-to-end test report');
+    await page.click('#report-next-2');
+    assert.equal(await page.locator('.wizard-page[data-page="3"]:not(.hidden)').count(), 1);
+    assert.equal(await page.isEnabled('#report-photo'), true);
     await page.check('#report-photo');
     const [reportResponse] = await Promise.all([
       page.waitForResponse((response) => response.url().includes('/report') && response.request().method() === 'POST'),

@@ -61,12 +61,49 @@ function pick(r) {
   };
 }
 
-(async () => {
-  if (fs.existsSync(DB_PATH)) fs.unlinkSync(DB_PATH);
-  const db = new DatabaseSync(DB_PATH);
+function ensureLiveSchema(db) {
   db.exec(`
-    CREATE TABLE products (
+    CREATE TABLE IF NOT EXISTS products (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nafdac TEXT,
+      product_name TEXT,
+      strength TEXT,
+      form TEXT,
+      route TEXT,
+      applicant TEXT,
+      manufacturer_id TEXT,
+      category TEXT,
+      approval_date TEXT,
+      expiry_date TEXT,
+      status TEXT,
+      manufacturer TEXT,
+      country TEXT NOT NULL DEFAULT 'NG'
+    );
+    CREATE INDEX IF NOT EXISTS idx_products_nafdac ON products (nafdac);
+    CREATE INDEX IF NOT EXISTS idx_products_country_nafdac ON products (country, nafdac);
+    CREATE TABLE IF NOT EXISTS ingest_meta (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      source TEXT NOT NULL,
+      fetched_at TEXT NOT NULL,
+      records_total INTEGER,
+      rows_written INTEGER NOT NULL
+    );
+  `);
+  const cols = db.prepare('PRAGMA table_info(products)').all().map((c) => c.name);
+  if (!cols.includes('manufacturer')) db.exec('ALTER TABLE products ADD COLUMN manufacturer TEXT');
+  if (!cols.includes('country')) db.exec("ALTER TABLE products ADD COLUMN country TEXT NOT NULL DEFAULT 'NG'");
+  db.exec("UPDATE products SET country = 'NG' WHERE country IS NULL OR TRIM(country) = ''");
+}
+
+(async () => {
+  const db = new DatabaseSync(DB_PATH);
+  ensureLiveSchema(db);
+  const before = db.prepare("SELECT COUNT(*) AS n FROM products WHERE country = 'NG'").get().n;
+  console.log(`NG rows before refresh: ${before}`);
+
+  db.exec('DROP TABLE IF EXISTS products_staging');
+  db.exec(`
+    CREATE TABLE products_staging (
       nafdac TEXT,
       product_name TEXT,
       strength TEXT,
@@ -79,11 +116,9 @@ function pick(r) {
       expiry_date TEXT,
       status TEXT
     );
-    CREATE INDEX idx_products_nafdac ON products (nafdac);
   `);
-
   const insert = db.prepare(`
-    INSERT INTO products (nafdac, product_name, strength, form, route, applicant,
+    INSERT INTO products_staging (nafdac, product_name, strength, form, route, applicant,
                           manufacturer_id, category, approval_date, expiry_date, status)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
@@ -106,7 +141,7 @@ function pick(r) {
       recordsTotal = j.recordsTotal;
     }
 
-    const txn = db.exec('BEGIN');
+    db.exec('BEGIN');
     for (const row of j.data) {
       const p = pick(row);
       insert.run(p.nafdac, p.product_name, p.strength, p.form, p.route, p.applicant,
@@ -126,28 +161,47 @@ function pick(r) {
   }
   console.timeEnd('ingest');
 
-  const fromDb = db.prepare('SELECT COUNT(*) AS n FROM products').get().n;
+  db.exec('BEGIN');
+  db.prepare("DELETE FROM products WHERE country = 'NG'").run();
+  db.exec(`
+    INSERT INTO products (nafdac, product_name, strength, form, route, applicant,
+                          manufacturer_id, category, approval_date, expiry_date, status,
+                          manufacturer, country)
+    SELECT nafdac, product_name, strength, form, route, applicant,
+           manufacturer_id, category, approval_date, expiry_date, status,
+           NULL, 'NG'
+    FROM products_staging
+  `);
+  db.exec('DROP TABLE products_staging');
+  const fetchedAt = new Date().toISOString();
+  db.prepare('INSERT INTO ingest_meta (source, fetched_at, records_total, rows_written) VALUES (?, ?, ?, ?)')
+    .run('greenbook', fetchedAt, recordsTotal, ingested);
+  db.exec('COMMIT');
+
+  const fromDb = db.prepare("SELECT COUNT(*) AS n FROM products WHERE country = 'NG'").get().n;
   console.log('\n==== SUMMARY ====');
   console.log(`recordsTotal reported : ${recordsTotal}`);
   console.log(`rows ingested         : ${ingested}`);
-  console.log(`rows in DB            : ${fromDb}`);
-  console.log(`gap (recordsTotal - ingested): ${recordsTotal - ingested}`);
+  console.log(`NG rows before        : ${before}`);
+  console.log(`NG rows after         : ${fromDb}`);
+  console.log(`net change            : ${fromDb - before}`);
+  console.log(`fetched_at            : ${fetchedAt}`);
   if (ingested !== recordsTotal) {
     console.log('NOTE: discrepancy between recordsTotal and rows returned.');
   }
 
-  const none = db.prepare("SELECT COUNT(*) AS n FROM products WHERE nafdac IS NULL OR nafdac = ''").get().n;
+  const none = db.prepare("SELECT COUNT(*) AS n FROM products WHERE country = 'NG' AND (nafdac IS NULL OR nafdac = '')").get().n;
   console.log(`rows with empty/missing reg number: ${none}`);
 
   const dupes = db.prepare(`
     SELECT nafdac, COUNT(*) AS c, COUNT(DISTINCT product_name) AS distinct_names
-    FROM products GROUP BY nafdac HAVING c > 3 ORDER BY c DESC
+    FROM products WHERE country = 'NG' GROUP BY nafdac HAVING c > 3 ORDER BY c DESC
   `).all();
   console.log(`reg numbers with >3 duplicate rows: ${dupes.length}`);
   const lines = [];
   for (const d of dupes) {
     const names = db.prepare(
-      'SELECT DISTINCT product_name FROM products WHERE nafdac = ? ORDER BY product_name LIMIT 5'
+      "SELECT DISTINCT product_name FROM products WHERE country = 'NG' AND nafdac = ? ORDER BY product_name LIMIT 5"
     ).all(d.nafdac).map((r) => r.product_name);
     const line = `${d.nafdac}\tcount=${d.c}\tdistinct_names=${d.distinct_names}\tproducts=${names.join(' | ')}`;
     lines.push(line);
@@ -158,6 +212,7 @@ function pick(r) {
   console.log(`\nDB written to: ${DB_PATH}`);
   console.log(`Duplicate report: ${DUPE_REPORT_PATH}`);
   db.close();
+  if (ingested !== recordsTotal) process.exitCode = 1;
 })().catch((e) => {
   console.error('FATAL', e);
   process.exit(1);

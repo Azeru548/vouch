@@ -83,7 +83,9 @@ function unescapeHtml(s) {
     for (const o of orphans) console.log(`  ${o.manufacturer_id} x${o.c}`);
   }
 
-  db.exec('ALTER TABLE products ADD COLUMN manufacturer TEXT');
+  if (!db.prepare('PRAGMA table_info(products)').all().some((c) => c.name === 'manufacturer')) {
+    db.exec('ALTER TABLE products ADD COLUMN manufacturer TEXT');
+  }
   db.exec(`
     UPDATE products SET manufacturer =
       (SELECT name FROM manufacturers WHERE manufacturers.id = products.manufacturer_id)

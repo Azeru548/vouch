@@ -300,8 +300,8 @@ function paint(result, input) {
     },
     verified_inactive: {
       className: 'r-inactive',
-      badge: 'Inactive listing',
-      title: 'This product is registered but inactive',
+      badge: 'Approval not active',
+      title: 'Registered, but the approval is not active',
     },
     mismatch: {
       className: 'r-mismatch',
@@ -342,7 +342,7 @@ function paint(result, input) {
 
   if (result.status === 'not_found') {
     parts.push(
-      '<p class="result-message">This number was not found in the current local registry snapshot.</p>',
+      '<p class="result-message">This number is not in our copy of the registry. Double-check it against the pack — if it matches, the product may be unregistered, or our copy may be out of date.</p>',
       `<ul class="result-meta">
         <li><span class="k">NAFDAC number</span><span class="v">${escapeHtml(input.nafdac)}</span></li>
         <li><span class="k">Product name entered</span><span class="v">${escapeHtml(input.productName)}</span></li>
@@ -479,28 +479,100 @@ async function setupNapamsPanel(input) {
 function reportPanel(input) {
   const photoAvailable = Boolean(els.preview.src);
   return `<section class="report-panel" aria-labelledby="report-title">
-    <h3 id="report-title">Report this product</h3>
-    <p>Reports are counted for this registration number and country. A community warning appears after 3 reports in 30 days.</p>
-    <form id="report-form" class="report-form">
-      <div class="report-fields">
-        <label>Area<input id="report-area" type="text" maxlength="120" required placeholder="e.g. Ikeja, Lagos"></label>
-        <label>What did you notice?<textarea id="report-note" maxlength="500" required placeholder="e.g. Seal looked tampered"></textarea></label>
-        <label class="report-check"><input id="report-photo" type="checkbox" ${photoAvailable ? '' : 'disabled'}> Attach the current product photo</label>
+    <h3 id="report-title">Does this pack look wrong?</h3>
+    <p>Two quick steps and your warning can protect the next shopper. After 3 reports about the same product in 30 days, everyone who checks it sees a warning.</p>
+    <ol class="wizard-steps" aria-label="Report progress">
+      <li data-wstep="1" class="current" aria-current="step">1 · Issue</li>
+      <li data-wstep="2">2 · Details</li>
+      <li data-wstep="3">3 · Send</li>
+    </ol>
+    <form id="report-form" class="report-form" novalidate>
+      <div class="wizard-page" data-page="1">
+        <p class="wizard-q">What looked wrong with the pack?</p>
+        <div class="issue-chips">
+          <button type="button" class="chip" data-issue="The seal looked broken or tampered">Broken seal</button>
+          <button type="button" class="chip" data-issue="The print looked blurry or wrong">Blurry print</button>
+          <button type="button" class="chip" data-issue="It tasted or smelled strange">Strange taste or smell</button>
+          <button type="button" class="chip" data-issue="The expiry date looked changed">Changed expiry date</button>
+          <button type="button" class="chip" data-issue="">Something else</button>
+        </div>
+        <button type="button" id="report-no" class="btn btn-ghost">Pack looked fine — no report</button>
       </div>
-      <div class="report-actions">
-        <button class="btn btn-primary" type="submit">Submit report</button>
+      <div class="wizard-page hidden" data-page="2">
+        <div class="report-fields">
+          <label>Where did you see it?<input id="report-area" type="text" maxlength="120" required placeholder="e.g. Ikeja, Lagos"></label>
+          <label>Tell us briefly<textarea id="report-note" maxlength="500" required placeholder="e.g. Seal was already cut open"></textarea></label>
+        </div>
+        <div class="wizard-nav">
+          <button type="button" id="report-back-2" class="btn btn-ghost">Back</button>
+          <button type="button" id="report-next-2" class="btn btn-secondary">Continue</button>
+        </div>
+      </div>
+      <div class="wizard-page hidden" data-page="3">
+        <p class="wizard-q">Anything to attach? Both optional.</p>
+        <label class="report-check"><input id="report-photo" type="checkbox" ${photoAvailable ? '' : 'disabled'}> Attach the current product photo</label>
         <button id="report-location" class="btn btn-ghost" type="button">Use my location</button>
+        <p id="report-summary" class="wizard-summary"></p>
+        <div class="wizard-nav">
+          <button type="button" id="report-back-3" class="btn btn-ghost">Back</button>
+          <button class="btn btn-primary" type="submit">Submit report</button>
+        </div>
       </div>
       <p id="report-status" class="report-status" role="status"></p>
     </form>
   </section>`;
 }
 
+function wizardGoto(step) {
+  document.querySelectorAll('#report-form .wizard-page').forEach((page) => {
+    page.classList.toggle('hidden', page.dataset.page !== String(step));
+  });
+  document.querySelectorAll('#report-form .wizard-steps li').forEach((item) => {
+    const active = item.dataset.wstep === String(step);
+    item.classList.toggle('current', active);
+    if (active) item.setAttribute('aria-current', 'step');
+    else item.removeAttribute('aria-current');
+  });
+}
+
 async function setupReportPanel(input, result) {
   const form = document.getElementById('report-form');
   if (!form) return;
   const status = document.getElementById('report-status');
+  const areaEl = document.getElementById('report-area');
+  const noteEl = document.getElementById('report-note');
   let coords = null;
+
+  form.querySelectorAll('.chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      if (chip.dataset.issue) noteEl.value = `${chip.dataset.issue}: `;
+      wizardGoto(2);
+      areaEl.focus();
+    });
+  });
+
+  document.getElementById('report-no')?.addEventListener('click', () => {
+    form.innerHTML = '<p class="wizard-done">Thanks — no report needed. If anything changes, you can report from a new check.</p>';
+  });
+
+  document.getElementById('report-back-2')?.addEventListener('click', () => wizardGoto(1));
+  document.getElementById('report-back-3')?.addEventListener('click', () => wizardGoto(2));
+  document.getElementById('report-next-2')?.addEventListener('click', () => {
+    if (!areaEl.value.trim()) {
+      status.textContent = 'Tell us where you saw it — an area or market name is enough.';
+      areaEl.focus();
+      return;
+    }
+    if (!noteEl.value.trim()) {
+      status.textContent = 'Add one line about what looked wrong.';
+      noteEl.focus();
+      return;
+    }
+    status.textContent = '';
+    document.getElementById('report-summary').textContent =
+      `${input.nafdac} · ${areaEl.value.trim()}`;
+    wizardGoto(3);
+  });
 
   document.getElementById('report-location')?.addEventListener('click', () => {
     if (!('geolocation' in navigator)) {

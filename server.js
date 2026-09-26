@@ -350,7 +350,7 @@ function normalizeProductName(name) {
 const selectGreenbook = db.prepare(
   `SELECT id, nafdac, product_name, strength, form, route, applicant,
           manufacturer, category, approval_date, expiry_date, status, country
-   FROM products WHERE nafdac = ? COLLATE NOCASE AND country = ?`
+   FROM products WHERE TRIM(nafdac) = ? COLLATE NOCASE AND country = ?`
 );
 const selectNapamsCache = cacheDb.prepare(
   `SELECT id, nafdac, product_name, NULL AS strength, NULL AS form, NULL AS route,
@@ -412,7 +412,7 @@ app.get('/verify', (req, res) => {
       : nearTop.reduce((a, b) => (rank(b) > rank(a) ? b : a));
 
   const INACTIVE_MESSAGE =
-    'This product is registered but its NAFDAC approval is currently inactive.';
+    'This number is in the official records, but its approval is not active right now. It may have expired, been suspended, or be waiting for renewal. Check the expiry date on the pack, and ask a pharmacist if you are unsure.';
 
   const mfrScore = best.manufacturer_score ?? 0;
   const mfrProvided = normManu !== null;

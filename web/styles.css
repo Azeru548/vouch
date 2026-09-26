@@ -738,8 +738,90 @@ h1, h2, h3 {
 .napams-cache-status,
 .report-status {
   min-height: 1.25rem;
-  color: var(--ink) !important;
-  font-size: 0.78rem !important;
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.wizard-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin: 0.8rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wizard-steps li {
+  padding: 0.45rem 0.2rem;
+  border: 1px dashed var(--line-strong);
+  border-radius: 8px;
+  color: var(--muted);
+  background: transparent;
+  font-family: var(--display);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.wizard-steps li.current {
+  border-style: solid;
+  border-color: var(--ink);
+  color: #fff;
+  background: var(--ink);
+}
+
+.wizard-q {
+  margin: 0.85rem 0 0 !important;
+  color: var(--ink-deep) !important;
+  font-size: 0.9rem !important;
+  font-weight: 700;
+}
+
+.issue-chips {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.7rem;
+}
+
+.chip {
+  min-height: 52px;
+  padding: 0.7rem 0.85rem;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-small);
+  color: var(--ink-deep);
+  background: #fff;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 140ms ease, transform 140ms ease;
+}
+
+.chip:hover { background: rgba(53, 49, 143, 0.07); }
+.chip:active { transform: scale(0.99); }
+
+#report-no { width: 100%; margin-top: 0.7rem; }
+
+.wizard-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-top: 0.85rem;
+}
+
+.wizard-nav .btn { flex: 1; }
+
+.wizard-summary {
+  color: var(--ink-deep) !important;
+  font-weight: 700;
+}
+
+.wizard-done {
+  color: var(--ink-deep) !important;
   font-weight: 650;
 }
 
@@ -871,6 +953,14 @@ h1, h2, h3 {
 }
 
 .trust-strip strong { color: var(--ink-soft); }
+
+.trust-copy {
+  display: grid;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.trust-copy p { margin: 0; }
 
 .spinner {
   display: inline-block;

@@ -86,7 +86,11 @@ async function loadMap() {
     map.setView(country === 'KE' ? [-1.2921, 36.8219] : [9.0579, 7.4951], 5);
   }
 
-  status.textContent = `${body.reports.length} reports shown (${sorted.length} mapped clusters${unlocated > 0 ? `, ${unlocated} without coordinates` : ''}).`;
+  if (body.reports.length === 0) {
+    status.textContent = 'No reports here yet. Check a product on the home page and report anything suspicious — it will appear on this map.';
+  } else {
+    status.textContent = `${body.reports.length} reports shown (${sorted.length} mapped clusters${unlocated > 0 ? `, ${unlocated} without coordinates` : ''}).`;
+  }
   areas.innerHTML = sorted.map((cluster) => `
     <li>
       <strong>${escapeHtml(cluster.area)}</strong>
