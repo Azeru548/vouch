@@ -28,4 +28,4 @@ One authored moment: the photo scan line. Everything else is instant state chang
 
 ## PWA
 
-`manifest.webmanifest` (indigo theme, paper background, 192 + 512 maskable seal icons), `sw.js` app-shell cache (`vouch-shell-v1`, API never cached), `beforeinstallprompt` install CTA, offline note. Icons rasterized from `icons/seal.svg`.
+`manifest.webmanifest` (indigo theme, paper background, 192 + 512 maskable seal icons), `sw.js` app-shell cache (`vouch-shell-v2`, API never cached), `beforeinstallprompt` install CTA, offline note. Icons rasterized from `icons/seal.svg`. The report map was removed; no third-party tile, font, or script dependencies remain — CSP is self-only.

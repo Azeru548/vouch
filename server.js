@@ -51,7 +51,7 @@ const app = express();
 app.disable('x-powered-by');
 app.use((req, res, next) => {
   res.set({
-    'Content-Security-Policy': "default-src 'self'; img-src 'self' data: blob: https://*.tile.openstreetmap.org; script-src 'self' https://unpkg.com; style-src 'self' https://unpkg.com; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
+    'Content-Security-Policy': "default-src 'self'; img-src 'self' data: blob:; script-src 'self'; style-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
     'Permissions-Policy': 'camera=(self), microphone=()',
     'Referrer-Policy': 'no-referrer',
     'X-Content-Type-Options': 'nosniff',
@@ -292,6 +292,22 @@ app.get('/api/reports', (req, res) => {
         is_seed: row.is_seed === 1,
         scan_status: scanStatus,
       };
+    }),
+  });
+});
+
+app.get('/api/alerts', (req, res) => {
+  const rows = reportsDb.prepare(
+    'SELECT alert_number, product_name, nafdac_number, batches, hazard, alert_type, manufacturer, source_url, alert_date, in_registry FROM hazard_alerts ORDER BY alert_date DESC'
+  ).all();
+  res.json({
+    alerts: rows.map((row) => {
+      let batches = [];
+      try {
+        const parsed = JSON.parse(row.batches || '[]');
+        if (Array.isArray(parsed)) batches = parsed.map(String);
+      } catch {}
+      return { ...row, batches, in_registry: row.in_registry === 1 };
     }),
   });
 });

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#23215f">
+  <meta name="description" content="Official NAFDAC safety alerts and recalls. Check if a product you use is affected.">
+  <title>Vouch — Safety Alerts</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="/icons/seal.svg">
+  <link rel="apple-touch-icon" href="/icons/seal-180.png">
+</head>
+<body>
+  <header class="topbar alerts-topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/" aria-label="Vouch home">
+        <span class="brand-mark" aria-hidden="true">V</span>
+        <span>
+          <strong>Vouch</strong>
+          <small>Safety alerts</small>
+        </span>
+      </a>
+      <a class="back-link" href="/">Back to verification</a>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="card alerts-controls" aria-labelledby="alerts-title">
+      <h1 id="alerts-title">Safety alerts</h1>
+      <p>Real warnings published by NAFDAC. If you use any of these products, stop and read the official alert.</p>
+      <div class="alerts-filter">
+        <label for="alerts-filter">Show</label>
+        <select id="alerts-filter">
+          <option value="ALL">All alerts</option>
+          <option value="recall">Recalls only</option>
+          <option value="safety_alert">Safety warnings only</option>
+        </select>
+      </div>
+      <p id="alerts-status" class="alerts-status" role="status">Loading alerts…</p>
+    </section>
+    <section id="alerts-list" class="alerts-list" aria-live="polite"></section>
+  </main>
+
+  <script src="/alerts.js"></script>
+</body>
+</html>

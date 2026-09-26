@@ -127,16 +127,8 @@ async function verify(page, nafdac, productName) {
     assert.match(await page.locator('.community-flag').innerText(), /3 reports in the last 30 days/i);
     await page.screenshot({ path: path.join(OUT, 'report-flag.png'), fullPage: true });
 
-    await page.goto(`${BASE}/map.html?country=ALL`, { waitUntil: 'networkidle' });
-    await page.waitForFunction(() => document.querySelector('#map-status')?.textContent.includes('reports shown'), { timeout: 30000 });
-    await page.waitForSelector('.leaflet-overlay-pane path', { timeout: 30000 });
-    const mapText = await page.locator('#map-areas').innerText();
-    assert.match(mapText, /Ikeja, Lagos/);
-    assert.match(mapText, /Westlands, Nairobi/);
-    await page.screenshot({ path: path.join(OUT, 'reports-map.png'), fullPage: true });
-
     assert.deepEqual(errors, []);
-    console.log('Report UI, threshold flag, and map checks passed');
+    console.log('Report UI and threshold flag checks passed');
   } finally {
     await browser.close();
     await stopServer(server);

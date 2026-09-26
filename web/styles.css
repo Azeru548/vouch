@@ -82,8 +82,7 @@ h1, h2, h3 {
 
 .topbar-inner,
 .hero-copy,
-.workspace,
-.map-workspace {
+.workspace {
   position: relative;
   z-index: 1;
   width: min(100%, 720px);
@@ -137,35 +136,6 @@ h1, h2, h3 {
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-}
-
-.registry-note {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.4rem 0.65rem;
-  border: 1px dashed rgba(255, 255, 255, 0.55);
-  border-radius: 999px;
-  color: #e6e1fb;
-  background: rgba(255, 255, 255, 0.06);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.registry-pulse {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #ffd97a;
-}
-
-.map-link {
-  color: #fff;
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-underline-offset: 3px;
 }
 
 .hero-copy { padding-top: 1.6rem; }
@@ -988,31 +958,30 @@ h1, h2, h3 {
   to { opacity: 1; }
 }
 
-/* ---------- map ---------- */
+/* ---------- safety alerts feed ---------- */
 
-.map-topbar { padding-bottom: 1.2rem; }
-
-.map-workspace {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 0.9rem;
-  margin-top: -1rem;
-  padding: 0 0.8rem 3rem;
+.back-link {
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-underline-offset: 3px;
 }
 
-.map-controls { padding: 1.1rem 1rem 1.2rem; }
+.alerts-topbar { padding-bottom: 1.2rem; }
 
-.map-controls h1 {
+.alerts-controls { padding: 1.1rem 1rem 1.2rem; }
+
+.alerts-controls h1 {
   margin: 0;
   font-size: 1.3rem;
   color: var(--ink-deep);
 }
 
-.map-controls p { color: var(--muted); font-size: 0.82rem; }
+.alerts-controls > p { color: var(--muted); font-size: 0.85rem; }
 
-.map-filter { display: grid; gap: 0.3rem; margin-top: 0.75rem; }
+.alerts-filter { display: grid; gap: 0.3rem; margin-top: 0.75rem; }
 
-.map-filter select {
+.alerts-filter select {
   width: 100%;
   min-height: 48px;
   padding: 0.6rem 0.7rem;
@@ -1023,33 +992,74 @@ h1, h2, h3 {
   background: #fff;
 }
 
-.map-status { min-height: 1.25rem; font-weight: 650; }
+.alerts-status { min-height: 1.25rem; font-weight: 650; }
 
-.map-areas {
+.alerts-list {
   display: grid;
-  gap: 0.5rem;
-  margin: 0.75rem 0 0;
-  padding: 0;
-  list-style: none;
+  gap: 0.9rem;
 }
 
-.map-areas li {
+.alert-card {
+  padding: 1.1rem 1rem 1.2rem;
+  border: 1px solid var(--line);
+  border-left: 6px solid var(--danger);
+  border-radius: var(--radius);
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+}
+
+.alert-card.is-recall { border-left-color: var(--danger-deep); }
+
+.alert-kind {
+  margin: 0;
+  color: var(--danger-deep);
+  font-family: var(--display);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.alert-card h2 {
+  margin: 0.3rem 0 0;
+  font-size: 1.15rem;
+  color: var(--ink-deep);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.alert-card > p {
+  margin: 0.5rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+}
+
+.alert-meta {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.8rem 0 0;
+  padding: 0.8rem;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-small);
+  list-style: none;
+  background: var(--paper);
+}
+
+.alert-meta li {
   display: grid;
   gap: 0.1rem;
-  padding: 0.6rem 0.7rem;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.7);
-  font-size: 0.78rem;
+  font-size: 0.82rem;
 }
 
-.map-areas span { color: var(--muted); }
-.map-panel { padding: 0.6rem; }
-.report-map {
-  width: 100%;
-  min-height: 420px;
-  border-radius: 10px;
+.alert-meta span {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
+
+.alert-card .btn { margin-top: 0.9rem; }
 
 /* ---------- install ---------- */
 
@@ -1087,11 +1097,6 @@ h1, h2, h3 {
   .topbar-inner {
     flex-wrap: wrap;
   }
-
-  .registry-note {
-    width: 100%;
-    justify-content: flex-start;
-  }
 }
 
 @media (min-width: 720px) {
@@ -1100,10 +1105,6 @@ h1, h2, h3 {
   .workspace { padding-inline: 1rem; }
   .scan-card,
   .verify-card { padding: 1.4rem 1.4rem 1.5rem; }
-  .map-workspace {
-    grid-template-columns: 320px minmax(0, 1fr);
-    align-items: start;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

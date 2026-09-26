@@ -1,10 +1,10 @@
-const CACHE = 'vouch-shell-v1';
+const CACHE = 'vouch-shell-v3';
 const SHELL = [
   '/',
   '/styles.css',
   '/app.js',
-  '/map.html',
-  '/map.js',
+  '/alerts.html',
+  '/alerts.js',
   '/manifest.webmanifest',
   '/icons/seal.svg',
   '/icons/seal-192.png',
@@ -36,7 +36,7 @@ self.addEventListener('fetch', (event) => {
     caches.match(request).then((cached) => {
       if (cached) return cached;
       return fetch(request).then((response) => {
-        if (request.destination === 'document' && response.ok) {
+        if (response.ok && request.destination === 'document') {
           const copy = response.clone();
           caches.open(CACHE).then((cache) => cache.put(request, copy));
         }
