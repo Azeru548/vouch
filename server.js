@@ -83,12 +83,12 @@ app.post('/api/extract', async (req, res) => {
     const upstream = await fetch(GROQ_URL, {
       method: 'POST',
       headers: { Authorization: `Bearer ${GROQ_KEY}`, 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(25000),
       body: JSON.stringify({
         model: VISION_MODEL,
         temperature: 0,
         max_tokens: 200,
         response_format: { type: 'json_object' },
-        signal: AbortSignal.timeout(25000),
         messages: [
           {
             role: 'user',
@@ -107,15 +107,27 @@ app.post('/api/extract', async (req, res) => {
     }
 
     const raw = body?.choices?.[0]?.message?.content ?? '';
-    let parsed;
+    let parsed = null;
     try {
       parsed = JSON.parse(raw);
     } catch {
-      return res.status(502).json({ error: 'vision_bad_json', detail: 'Photo reading returned an invalid response.' });
+      parsed = null;
     }
 
-    const nafdac_number = typeof parsed.nafdac_number === 'string' ? parsed.nafdac_number.trim().toUpperCase() : null;
-    const found = parsed.found === true;
+    const candidates = [];
+    if (parsed && typeof parsed === 'object') {
+      for (const key of Object.keys(parsed)) {
+        if (/nafdac|registration|nrn/i.test(key) && typeof parsed[key] === 'string') {
+          candidates.push(parsed[key]);
+        }
+      }
+      if (typeof parsed.nafdac_number === 'string') candidates.unshift(parsed.nafdac_number);
+    }
+    const shapeMatch = raw.match(/[A-Z0-9]{1,3}-\d{3,6}/i);
+    if (shapeMatch) candidates.push(shapeMatch[0]);
+
+    const nafdac_number = candidates.length > 0 ? String(candidates[0]).trim().toUpperCase() : null;
+    const found = (parsed && parsed.found === true) || nafdac_number != null;
     const format_valid = nafdac_number != null && NAFDAC_RE.test(nafdac_number);
 
     res.json({
@@ -292,22 +304,6 @@ app.get('/api/reports', (req, res) => {
         is_seed: row.is_seed === 1,
         scan_status: scanStatus,
       };
-    }),
-  });
-});
-
-app.get('/api/alerts', (req, res) => {
-  const rows = reportsDb.prepare(
-    'SELECT alert_number, product_name, nafdac_number, batches, hazard, alert_type, manufacturer, source_url, alert_date, in_registry FROM hazard_alerts ORDER BY alert_date DESC'
-  ).all();
-  res.json({
-    alerts: rows.map((row) => {
-      let batches = [];
-      try {
-        const parsed = JSON.parse(row.batches || '[]');
-        if (Array.isArray(parsed)) batches = parsed.map(String);
-      } catch {}
-      return { ...row, batches, in_registry: row.in_registry === 1 };
     }),
   });
 });

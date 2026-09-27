@@ -1,10 +1,8 @@
-const CACHE = 'vouch-shell-v3';
+const CACHE = 'vouch-shell-v4';
 const SHELL = [
   '/',
   '/styles.css',
   '/app.js',
-  '/alerts.html',
-  '/alerts.js',
   '/manifest.webmanifest',
   '/icons/seal.svg',
   '/icons/seal-192.png',
