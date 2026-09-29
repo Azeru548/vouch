@@ -6,6 +6,8 @@ const path = require('path');
 const { databasePath: DB_PATH, cachePath: CACHE_PATH, port: PORT, visionModel: VISION_MODEL } = require('./config');
 const { ensureReportsTable } = require('./scripts/reports_schema');
 const { ensureHazardTable } = require('./scripts/hazard_schema');
+const { ensureKnownFakesTable, parseJsonArray } = require('./scripts/fakes_schema');
+const { APPEARANCE_PROMPT, cleanAppearanceFields } = require('./scripts/fake_appearance');
 
 const WEB_DIR = path.join(__dirname, 'web');
 const GROQ_KEY = process.env.GROQ_API_KEY || '';
@@ -25,6 +27,7 @@ if (!db.prepare('PRAGMA table_info(products)').all().some((column) => column.nam
 const reportsDb = new DatabaseSync(DB_PATH);
 ensureReportsTable(reportsDb);
 ensureHazardTable(reportsDb);
+ensureKnownFakesTable(reportsDb);
 const cacheDb = new DatabaseSync(CACHE_PATH);
 cacheDb.exec(`
   CREATE TABLE IF NOT EXISTS napams_cache (
@@ -142,10 +145,69 @@ app.post('/api/extract', async (req, res) => {
   }
 });
 
+// Describes how a pack looks, so it can be compared against the known-fake
+// library. Deliberately a separate endpoint from /api/extract: that prompt was
+// narrowed to the NAFDAC number alone because asking for more made the model
+// misread numbers. Never merge the two prompts.
+app.post('/api/describe', async (req, res) => {
+  if (!GROQ_KEY) {
+    return res.status(503).json({ error: 'vision_not_configured', detail: 'Set GROQ_API_KEY on the server to enable pack description.' });
+  }
+  const { image } = req.body || {};
+  if (!image || typeof image !== 'string' || !image.startsWith('data:image')) {
+    return res.status(400).json({ error: 'bad_image', detail: 'Expected a data:image/... base64 string.' });
+  }
+
+  try {
+    const upstream = await fetch(GROQ_URL, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${GROQ_KEY}`, 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(25000),
+      body: JSON.stringify({
+        model: VISION_MODEL,
+        temperature: 0,
+        max_tokens: 220,
+        response_format: { type: 'json_object' },
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: APPEARANCE_PROMPT },
+              { type: 'image_url', image_url: { url: image } },
+            ],
+          },
+        ],
+      }),
+    });
+
+    if (!upstream.ok) {
+      return res.status(502).json({ error: 'vision_upstream_error', detail: 'Pack description service is unavailable.' });
+    }
+
+    const body = await upstream.json();
+    const raw = body?.choices?.[0]?.message?.content ?? '';
+    let parsed = null;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      parsed = null;
+    }
+
+    const fields = cleanAppearanceFields(parsed);
+    if (!fields.appearance) {
+      return res.status(502).json({ error: 'describe_failed', detail: 'The pack could not be described from this photo.' });
+    }
+    res.json(fields);
+  } catch {
+    res.status(502).json({ error: 'vision_request_failed', detail: 'Pack description timed out or could not be reached.' });
+  }
+});
+
 app.get('/api/config', (req, res) => {
   res.json({
     vision_enabled: Boolean(GROQ_KEY),
     vision_model: VISION_MODEL,
+    appearance_enabled: Boolean(GROQ_KEY),
     napams_url: NAPAMS_URL,
     local_cache_enabled: true,
   });
@@ -166,6 +228,12 @@ function toHazard(row) {
     const parsed = JSON.parse(row.batches || '[]');
     if (Array.isArray(parsed)) batches = parsed.map(String);
   } catch {}
+  let photos = [];
+  try {
+    const fake = reportsDb.prepare('SELECT photos_json FROM known_fakes WHERE alert_number = ?').get(row.alert_number);
+    const parsed = JSON.parse(fake?.photos_json || '[]');
+    if (Array.isArray(parsed)) photos = parsed.filter((p) => typeof p === 'string');
+  } catch {}
   return {
     alert_number: row.alert_number,
     hazard: row.hazard,
@@ -173,6 +241,7 @@ function toHazard(row) {
     source_url: row.source_url,
     alert_date: row.alert_date,
     batches,
+    photos,
   };
 }
 
@@ -193,24 +262,47 @@ function hazardMatch(nafdacNumber, normalizedName) {
   return best ? toHazard(best.row) : undefined;
 }
 
-function communityFlag(nafdacNumber, country) {
+// Groups recent reports about the same pack and warns once enough people agree.
+//
+// A report is keyed by registration number when one was entered. Without a
+// number — food, drinks and cosmetics — the product name is the only key there
+// is, so it is compared with the same fuzzy 85 bar the rest of the app uses.
+// The name comparison is only a grouping heuristic for a warning count; it
+// never contributes to a verification verdict.
+const COMMUNITY_NAME_SCORE = 85;
+
+function communityFlag(nafdacNumber, productName, country) {
   const cutoff = new Date(Date.now() - COMMUNITY_FLAG_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
   const rows = reportsDb.prepare(`
-    SELECT location_area
+    SELECT nafdac_number, product_name, location_area
     FROM reports
-    WHERE nafdac_number = ? COLLATE NOCASE AND country = ? AND created_at >= ?
+    WHERE country = ? AND created_at >= ?
     ORDER BY created_at DESC
-  `).all(nafdacNumber, country, cutoff);
-  if (rows.length < COMMUNITY_FLAG_THRESHOLD) return undefined;
+  `).all(country, cutoff);
+
+  const number = String(nafdacNumber || '').trim().toLowerCase();
+  const name = number ? '' : normalizeProductName(productName);
+  const matches = rows.filter((row) => {
+    if (number) return String(row.nafdac_number || '').toLowerCase() === number;
+    if (!name) return false;
+    const rowName = normalizeProductName(row.product_name);
+    return rowName !== '' && fuzz.token_set_ratio(name, rowName) >= COMMUNITY_NAME_SCORE;
+  });
+
+  if (matches.length < COMMUNITY_FLAG_THRESHOLD) return undefined;
   return {
     flagged: true,
-    report_count: rows.length,
-    recent_locations: [...new Set(rows.map((row) => row.location_area))].slice(0, 5),
+    report_count: matches.length,
+    reported_on: number ? 'registration_number' : 'product_name',
+    recent_locations: [...new Set(matches.map((row) => row.location_area))].slice(0, 5),
   };
 }
 
 app.post('/report', (req, res) => {
+  // The registration number is optional: the pack people most need to report
+  // may not have one at all. The product name is what we always require.
   const nafdacNumber = String(req.body?.nafdac_number || '').trim();
+  const productName = String(req.body?.product_name || '').trim();
   const country = String(req.body?.country || '').trim().toUpperCase();
   const locationArea = String(req.body?.location_area || '').trim();
   const note = String(req.body?.note || '').trim();
@@ -220,10 +312,10 @@ app.post('/report', (req, res) => {
   const sessionId = String(req.body?.session_id || '').trim();
   const scanResult = req.body?.scan_result;
 
-  if (!nafdacNumber || !['NG', 'KE'].includes(country) || !locationArea || !note || !sessionId || !isPlainObject(scanResult)) {
-    return res.status(400).json({ error: 'nafdac_number, country, location_area, note, session_id, and scan_result are required' });
+  if (!productName || !['NG', 'KE'].includes(country) || !locationArea || !note || !sessionId || !isPlainObject(scanResult)) {
+    return res.status(400).json({ error: 'product_name, country, location_area, note, session_id, and scan_result are required' });
   }
-  if (nafdacNumber.length > 32 || locationArea.length > 120 || note.length > 500 || sessionId.length > 64) {
+  if (nafdacNumber.length > 32 || productName.length > 200 || locationArea.length > 120 || note.length > 500 || sessionId.length > 64) {
     return res.status(400).json({ error: 'input_too_long' });
   }
   if (!/^[A-Za-z0-9_-]{8,64}$/.test(sessionId)) {
@@ -265,9 +357,9 @@ app.post('/report', (req, res) => {
   }
 
   const info = reportsDb.prepare(`
-    INSERT INTO reports (nafdac_number, country, location_area, note, photo_url, scan_result, latitude, longitude, session_id, created_at, is_seed)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
-  `).run(nafdacNumber, country, locationArea, note, photo || null, scanResultText, lat, lng, sessionId, createdAt);
+    INSERT INTO reports (nafdac_number, product_name, country, location_area, note, photo_url, scan_result, latitude, longitude, session_id, created_at, is_seed)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+  `).run(nafdacNumber || null, productName, country, locationArea, note, photo || null, scanResultText, lat, lng, sessionId, createdAt);
   res.status(201).json({ ok: true, id: Number(info.lastInsertRowid), created_at: createdAt });
 });
 
@@ -278,11 +370,11 @@ app.get('/api/reports', (req, res) => {
   }
   const rows = country === 'ALL'
     ? reportsDb.prepare(`
-      SELECT id, nafdac_number, country, location_area, note, latitude, longitude, created_at, is_seed, scan_result
+      SELECT id, nafdac_number, product_name, country, location_area, note, latitude, longitude, created_at, is_seed, scan_result
       FROM reports ORDER BY created_at DESC LIMIT 500
     `).all()
     : reportsDb.prepare(`
-      SELECT id, nafdac_number, country, location_area, note, latitude, longitude, created_at, is_seed, scan_result
+      SELECT id, nafdac_number, product_name, country, location_area, note, latitude, longitude, created_at, is_seed, scan_result
       FROM reports WHERE country = ? ORDER BY created_at DESC LIMIT 500
     `).all(country);
   res.json({
@@ -295,6 +387,7 @@ app.get('/api/reports', (req, res) => {
       return {
         id: row.id,
         nafdac_number: row.nafdac_number,
+        product_name: row.product_name,
         country: row.country,
         location_area: row.location_area,
         note: row.note,
@@ -370,35 +463,111 @@ const selectNapamsCache = cacheDb.prepare(
           status, source, checked_at AS source_checked_at, country
    FROM napams_cache WHERE nafdac = ? COLLATE NOCASE AND country = ?`
 );
+const selectKnownFakes = reportsDb.prepare(
+  `SELECT alert_number, product_name, nafdac_number, category, brand_name, aliases, appearance,
+          hazard, batches, source_url, photos_json
+   FROM known_fakes`
+);
+
+// Threat-intel fallback against the known-fake library, for packs that have no
+// registration number to check — unregistered food, drinks and cosmetics.
+//
+// This is advisory by design. It can only ever ADD a lead underneath a verdict
+// we already reached; it never changes one. A name hit is held to the same 85
+// bar the rest of the app uses. An appearance-only hit is allowed in at a lower
+// score because free-text pack descriptions are noisy, and such hits are
+// labelled `matched_on: 'appearance'` so the UI can say so plainly.
+const SUSPECT_MIN_NAME_SCORE = 85;
+const SUSPECT_MIN_APPEARANCE_SCORE = 60;
+const SUSPECT_MAX = 3;
+
+function toFakeCandidate(row) {
+  return {
+    alert_number: row.alert_number,
+    product_name: row.product_name,
+    category: row.category,
+    brand_name: row.brand_name,
+    appearance: row.appearance,
+    hazard: row.hazard,
+    batches: parseJsonArray(row.batches),
+    source_url: row.source_url,
+    photos: parseJsonArray(row.photos_json),
+  };
+}
+
+function knownFakeSuspects(normName, normAppearance) {
+  if (!normName && !normAppearance) return [];
+  const scored = [];
+  for (const row of selectKnownFakes.all()) {
+    const names = [row.product_name, row.brand_name, ...parseJsonArray(row.aliases)].filter(Boolean);
+    const nameScore = normName
+      ? Math.max(...names.map((name) => fuzz.token_set_ratio(normName, normalizeProductName(name))))
+      : 0;
+    const appearanceScore = normAppearance && row.appearance
+      ? fuzz.token_set_ratio(normAppearance, normalizeProductName(row.appearance))
+      : 0;
+    if (nameScore < SUSPECT_MIN_NAME_SCORE && appearanceScore < SUSPECT_MIN_APPEARANCE_SCORE) continue;
+    scored.push({
+      ...toFakeCandidate(row),
+      name_score: nameScore,
+      appearance_score: appearanceScore || null,
+      score: Math.round(Math.max(nameScore, appearanceScore)),
+      matched_on: appearanceScore > nameScore ? 'appearance' : 'name',
+    });
+  }
+  return scored
+    .sort((a, b) => b.score - a.score || a.product_name.localeCompare(b.product_name))
+    .slice(0, SUSPECT_MAX);
+}
 
 app.get('/verify', (req, res) => {
   const { nafdac, product_name, manufacturer } = req.query;
   const country = String(req.query.country || 'NG').trim().toUpperCase();
+  const appearanceParam = req.query.appearance;
+  // The registration number is optional. Without one we skip the registry
+  // entirely and answer from the known-fake library alone.
+  const hasNumber = nafdac != null && String(nafdac).trim() !== '';
 
   if (!['NG', 'KE'].includes(country)) {
     return res.status(400).json({ error: 'country must be NG or KE' });
   }
-  if (!nafdac) {
-    return res.status(400).json({ error: 'missing required param: nafdac' });
-  }
   if (product_name == null) {
     return res.status(400).json({ error: 'missing required param: product_name' });
   }
-  if (String(nafdac).length > 32 || String(product_name).length > 200 || String(manufacturer ?? '').length > 200) {
+  if (
+    String(nafdac ?? '').length > 32 ||
+    String(product_name).length > 200 ||
+    String(manufacturer ?? '').length > 200 ||
+    String(appearanceParam ?? '').length > 600
+  ) {
     return res.status(400).json({ error: 'input_too_long' });
   }
 
-  const normalizedNafdac = String(nafdac).trim();
-  const rows = [
-    ...selectGreenbook.all(normalizedNafdac, country).map((row) => ({ ...row, source: country === 'KE' ? 'kenya_ppb' : 'greenbook', source_checked_at: null })),
-    ...selectNapamsCache.all(normalizedNafdac, country),
-  ];
-  const flag = communityFlag(normalizedNafdac, country);
+  const normalizedNafdac = hasNumber ? String(nafdac).trim() : '';
+  const rows = hasNumber
+    ? [
+        ...selectGreenbook.all(normalizedNafdac, country).map((row) => ({ ...row, source: country === 'KE' ? 'kenya_ppb' : 'greenbook', source_checked_at: null })),
+        ...selectNapamsCache.all(normalizedNafdac, country),
+      ]
+    : [];
   const normName = normalizeProductName(product_name);
+  // Works with or without a number: a pack with none is still reportable, and
+  // the warnings it earns must show up on the next check of the same name.
+  const flag = communityFlag(normalizedNafdac, product_name, country);
   const normManu = manufacturer != null ? normalizeProductName(manufacturer) : null;
+  const normAppearance = appearanceParam ? normalizeProductName(appearanceParam) : null;
   const hazard = hazardMatch(normalizedNafdac, normName);
   if (rows.length === 0) {
-    return res.json({ status: 'not_found', nafdac, country, ...(flag ? { community_flag: flag } : {}), ...(hazard ? { hazard } : {}) });
+    const suspects = knownFakeSuspects(normName, normAppearance);
+    return res.json({
+      status: 'not_found',
+      nafdac: hasNumber ? nafdac : null,
+      country,
+      ...(hasNumber ? {} : { reason: 'no_number_provided' }),
+      ...(flag ? { community_flag: flag } : {}),
+      ...(hazard ? { hazard } : {}),
+      ...(suspects.length > 0 ? { suspects } : {}),
+    });
   }
 
   const scored = rows.map((row) => {
@@ -497,6 +666,12 @@ app.get('/verify', (req, res) => {
   if (message) payload.message = message;
   if (flag) payload.community_flag = flag;
   if (hazard) payload.hazard = hazard;
+  // Only attach library leads when the registry could NOT confirm the pack.
+  // A confirmed registration is never second-guessed by this list.
+  if (status === 'not_found' || status === 'mismatch') {
+    const suspects = knownFakeSuspects(normName, normAppearance);
+    if (suspects.length > 0) payload.suspects = suspects;
+  }
 
   res.json(payload);
 });

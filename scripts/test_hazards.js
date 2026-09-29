@@ -75,6 +75,25 @@ async function lookup(nafdac, productName, country = 'NG') {
   setup.close();
   process.env.DATABASE_PATH = MAIN_PATH;
   require('./seed_hazards.js');
+  const fakesDir = path.join(__dirname, '..', 'web', 'fakes');
+  const fakeFiles = fs.existsSync(fakesDir) ? fs.readdirSync(fakesDir).filter((f) => /\.(png|jpe?g|webp|gif)$/i.test(f)) : [];
+  assert.ok(fakeFiles.length > 0, 'web/fakes must contain reference photos — run npm run seed:fakes first');
+  const fakeSetup = new DatabaseSync(MAIN_PATH);
+  fakeSetup.exec(`
+    CREATE TABLE IF NOT EXISTS known_fakes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      alert_number TEXT NOT NULL UNIQUE,
+      product_name TEXT NOT NULL,
+      nafdac_number TEXT,
+      batches TEXT NOT NULL DEFAULT '[]',
+      hazard TEXT NOT NULL,
+      source_url TEXT NOT NULL,
+      photos_json TEXT NOT NULL DEFAULT '[]'
+    );
+  `);
+  fakeSetup.prepare(`INSERT INTO known_fakes (alert_number, product_name, nafdac_number, batches, hazard, source_url, photos_json) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+    .run('030A/2025', 'Artemetrin DS Tablets 80/480mg', 'A4-3164', '["Q011G"]', 'seed', 'https://example.invalid', JSON.stringify([`/fakes/${fakeFiles[0]}`]));
+  fakeSetup.close();
 
   const server = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], {
     stdio: 'ignore',
@@ -90,6 +109,10 @@ async function lookup(nafdac, productName, country = 'NG') {
     assert.equal(registryPlusHazard.status, 'verified');
     assert.equal(registryPlusHazard.hazard?.alert_number, '030A/2025');
     assert.deepEqual(registryPlusHazard.hazard?.batches, ['Q011G']);
+    assert.ok(Array.isArray(registryPlusHazard.hazard?.photos) && registryPlusHazard.hazard.photos.length > 0);
+    assert.ok(registryPlusHazard.hazard.photos.every((src) => src.startsWith('/fakes/')));
+    const photoRes = await fetch(`${BASE}${registryPlusHazard.hazard.photos[0]}`);
+    assert.equal(photoRes.status, 200);
 
     const counterfeitNumber = await lookup('04-6433', 'Proguanil');
     assert.equal(counterfeitNumber.hazard?.alert_number, '023/2026');
@@ -113,14 +136,23 @@ async function lookup(nafdac, productName, country = 'NG') {
       if (message.type() === 'error') browserErrors.push(message.text());
     });
     await page.goto(BASE, { waitUntil: 'networkidle' });
+    await page.setInputFiles('#file-input', path.join(__dirname, '..', 'assets', 'sharp-sample-image.jpg'));
+    await page.waitForFunction(() => {
+      const status = document.querySelector('#ocr-status');
+      return status && !status.classList.contains('hidden') && !status.querySelector('.spinner');
+    }, { timeout: 30000 });
     await page.selectOption('#in-country', 'NG');
     await page.fill('#in-nafdac', 'A4-3164');
     await page.fill('#in-name', 'Artemetrin DS Tablet');
     await page.click('#verify-form button[type=submit]');
     await page.waitForSelector('.hazard-alert', { timeout: 15000 });
+    await page.waitForSelector('.compare-panel', { timeout: 15000 });
+    // Heading text is rendered uppercase by the global h1, h2, h3 rule, so match case-insensitively.
+    assert.match(await page.locator('.compare-panel').innerText(), /Compare these two packs/i);
+    assert.ok((await page.locator('.compare-panel figure:last-child img').count()) >= 1);
     const firstClass = await page.evaluate(() => document.querySelector('#result .result')?.firstElementChild?.className || '');
     assert.match(firstClass, /hazard-alert/);
-    assert.match(await page.locator('.hazard-alert').innerText(), /030A\/2025/);
+    assert.match(await page.locator('.hazard-alert').innerText(), /030A\/2025/i);
     await page.screenshot({ path: path.join(OUT, 'hazard-flag.png'), fullPage: true });
     assert.deepEqual(browserErrors, []);
     console.log('Hazard banner renders first, above verdict and community flag');

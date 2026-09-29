@@ -14,6 +14,7 @@ Data sources are NAFDAC's public Greenbook (https://greenbook.nafdac.gov.ng) for
 config.js            Shared runtime, database path, and vision model configuration
 server.js            Express app: /verify, /api/extract, /api/config, /api/health, static web/
 web/                 Vouch UI: index.html, styles.css, app.js (no framework, no build step)
+web/fakes/           Official NAFDAC photos of flagged packs, served offline
 .env.example         Non-secret environment template
 data/
   nafdac_products.db SQLite, 8,977 product rows (~1.8 MB)
@@ -55,9 +56,22 @@ Also a `manufacturers(id, name)` reference table (1,420 rows) scraped from `/man
 
 `napams_cache` is a separate writable local SQLite database created at `data/napams_cache.db`. It stores only records the user manually confirms after opening the official NAPAMS verifier: `nafdac`, `product_name`, optional manufacturer/applicant/category/notes, status, `source`, and `checked_at`. It is not a scraped mirror of NAPAMS.
 
-`reports` lives in the main `data/nafdac_products.db`: `id, nafdac_number, country, location_area, note, photo_url, scan_result, latitude, longitude, session_id, created_at, is_seed`. Rows with `is_seed = 1` are DEMO/SEED data only. `POST /report` rate-limits to 5 reports/hour per session. `/verify` adds `community_flag {flagged, report_count, recent_locations}` when a number+country has ≥3 reports in 30 days. `GET /api/reports` exposes non-sensitive report data (no session IDs or photos). The report map and the standalone alerts feed page were both removed; hazard intel now surfaces only as the banner on check results (a proper blog with images plus push notifications is planned next).
+`reports` lives in the main `data/nafdac_products.db`: `id, nafdac_number (nullable), product_name, country, location_area, note, photo_url, scan_result, latitude, longitude, session_id, created_at, is_seed`. Rows with `is_seed = 1` are DEMO/SEED data only. `POST /report` rate-limits to 5 reports/hour per session and **requires `product_name`, not a registration number** — the packs most worth reporting are the unregistered ones. `ensureReportsTable()` rebuilds the table once for snapshots where `nafdac_number` was still `NOT NULL` (SQLite cannot relax a constraint in place); `test:reports` covers that migration.
 
-`hazard_alerts` (same DB) holds 14 manually curated NAFDAC alerts: `alert_number, product_name, nafdac_number (nullable), batches (JSON), hazard, alert_type, manufacturer, source_url, alert_date, in_registry`. `/verify` runs two independent checks on every verdict: number-keyed match, plus fuzzy name match (≥85) against NULL-number rows so unregistered products like Menofix are caught. Hit responses carry `hazard {alert_number, hazard, alert_type, source_url, alert_date, batches}`; omitted otherwise. The hazard banner renders first, above verdict and community flag.
+`/verify` adds `community_flag {flagged, report_count, reported_on, recent_locations}` when ≥3 reports in 30 days agree on the same pack. The key is the registration number when the check had one, otherwise the product name, compared with `fuzzball.token_set_ratio` at the same 85 bar used elsewhere — the name is only a grouping heuristic and never feeds a verdict. `reported_on` says which key was used. `GET /api/reports` exposes non-sensitive report data (no session IDs or photos). The report map and the standalone alerts feed page were both removed; hazard intel now surfaces only as the banner on check results (a proper blog with images plus push notifications is planned next).
+
+`hazard_alerts` (same DB) holds 19 manually curated NAFDAC alerts — medicines plus food and cosmetic alerts: `alert_number, product_name, nafdac_number (nullable), batches (JSON), hazard, alert_type, manufacturer, source_url, alert_date, in_registry`. `/verify` runs two independent checks on every verdict: number-keyed match, plus fuzzy name match (≥85) against NULL-number rows so unregistered products like Menofix are caught. Hit responses carry `hazard {alert_number, hazard, alert_type, source_url, alert_date, batches}`; omitted otherwise. The hazard banner renders first, above verdict and community flag.
+
+`known_fakes` (same DB) is the **known-fake reference library**, and it is a different thing from `hazard_alerts`. It exists so a pack can be flagged when there is **no registration number to check at all** — the normal case for unregistered food, drinks and cosmetics. Columns: the alert facts (`alert_number UNIQUE, product_name, nafdac_number, batches, hazard, source_url, photos_json`) plus the library metadata (`category` in drug/food/cosmetic/device/chemical/other, `brand_name`, `aliases` JSON, `appearance`). Built by `seed:fakes`, which takes the alert facts from `hazard_alerts` and layers the metadata on top, so the two cannot drift.
+
+Two things worth knowing before touching it:
+
+- **`alert_number` is UNIQUE, but two alerts cover two products each** (`35/2025` = Annmox *and* Jawamox; `34/2025` = Astamocil *and* Astamentin). The seed merges those into one row carrying both names in `product_name` and `aliases`; a naive one-row-per-alert loop silently drops the second product.
+- **`appearance` is deliberately null for the drug entries.** They already have official NAFDAC photos on disk, and `enrich:fake-appearance` fills their descriptors in from the photo. We do not invent pack details we cannot see. The food and cosmetic rows carry hand-written descriptors taken from what their alerts actually describe.
+- **Photos come from the alert page itself**, never from a lookalike or a stock image. `photosByAlert` in `seed_fakes.js` lists the exact URLs read out of each alert, and the seed downloads them to `web/fakes/`. Three alerts publish no product photo at all (`018/2026` Cerelac, `34/2025` and `35/2025` amoxicillin suspensions); those entries fall back to their written `appearance` descriptor, and the UI says plainly that no photo exists. Do not substitute an image for them.
+- One quirk to expect: NAFDAC published the `041/2026` ORACIRE+ counterfeit photo under filenames beginning `OralB`. The images do sit under that page's "Counterfeit Product Photo" heading, so they belong to the alert despite the name.
+
+`/verify` matches against the library through `knownFakeSuspects()`, which scores every row on the typed name (against `product_name` + `brand_name` + `aliases`) and on the photo's `appearance` descriptor, both with `fuzzball.token_set_ratio`. A name hit is held to the same 85 bar used elsewhere; an appearance-only hit is allowed in at 60, because free-text pack descriptions are noisy, and such hits are labelled `matched_on: 'appearance'`. Leads are reported in a `suspects` array (max 3) and are **advisory only**: they are attached only to `not_found` and `mismatch` results, never to a confirmed registration, and they never change a verdict.
 
 ## The four verdicts
 
@@ -68,7 +82,11 @@ Also a `manufacturers(id, name)` reference table (1,420 rows) scraped from `/man
 | `mismatch` | name <85, or manufacturer gate failed | red + "closest match — does not confirm" |
 | `not_found` | no rows for that number | dark red dashed, different copy |
 
-`mismatch` and `not_found` show a NAPAMS handoff panel. The button opens the official verifier and copies the entered number; after the user completes the official check, they may save the confirmed result to the local cache.
+`mismatch` and `not_found` show a NAPAMS handoff panel. The button opens the official verifier and copies the entered number; after the user completes the official check, they may save the confirmed result to the local cache. That panel is keyed by a registration number, so it is not offered when the number is left blank.
+
+Reporting is different. `openReportModal()` in `web/app.js` opens a **modal after every check** — including `verified` — asking whether the pack looked different or damaged. One tap on an issue chip pre-fills the note, then area + note are the only required fields; the photo and geolocation are optional. When the check turned up official imagery (`hazard.photos` or a suspect's `photos`), the modal puts NAFDAC's photo of the flagged pack beside the user's own, or states the written descriptor when the alert has no photo. Escape, the close button, the backdrop, and "Pack looked fine" all dismiss it without submitting. Re-checks that the app triggers itself (after a report, or after a NAPAMS cache save) set `skipNextReportPrompt` so the modal does not immediately repeat itself.
+
+**`nafdac` is optional; `product_name` is not.** With no number, the registry lookup is skipped entirely and the response is `not_found` with `reason: 'no_number_provided'`. That is the flow for food, drinks and cosmetics, which usually carry no registration number.
 
 ## /verify decision logic (do not casually change — it's tuned)
 
@@ -117,9 +135,14 @@ Note: **`AB-102886` is not in the database** (`%102886%` returns 0 rows), so the
 npm.cmd test                         # 12 asserted /verify cases + smoke/security/cache checks
 npm.cmd run test:e2e                 # Playwright desktop/mobile flow, NAPAMS handoff, all verdicts
 npm.cmd run test:reports             # report API, community flag, rate limit (temp DB)
-npm.cmd run test:report-ui           # UI report submission, threshold flag, map + screenshots (temp DB copy)
+npm.cmd run test:report-ui           # report modal flow, number-optional reporting, threshold flag (temp DB copy)
 npm.cmd run seed:reports             # 10 DEMO seed reports (5 NG, 5 KE); modifies the configured DB
 npm.cmd run test:extract             # sends each assets/ image through /api/extract
+npm.cmd run test:hazards             # hazard matching + banner ordering (temp DB)
+npm.cmd run test:fakes               # known-fake library schema, matching, lead UI (temp DB)
+npm.cmd run seed:hazards             # 19 curated NAFDAC alerts; modifies the configured DB
+npm.cmd run seed:fakes               # rebuild the known-fake library; downloads photos unless SKIP_PHOTO_DOWNLOAD=true
+npm.cmd run enrich:fake-appearance   # derive appearance text for library photos via vision (needs GROQ_API_KEY)
 npm.cmd run ingest                   # re-pull Greenbook (destructive: recreates the DB)
 npm.cmd run enrich:manufacturers     # refresh manufacturer names in the shared DB
 node scripts\screenshot_states.js    # regenerates screenshots/ for all four verdicts
@@ -145,7 +168,7 @@ Useful reg numbers for manual testing:
 
 ## Status of work
 
-Done: recon, ingestion, manufacturer enrichment, whitespace migration, `/verify` with all 4 verdicts, vision extraction, responsive Vouch UI, client-side image downscaling, security headers, NAPAMS handoff, local confirmed-result cache, and asserted API/smoke/browser tests. Deployment is intentionally deferred.
+Done: recon, ingestion, manufacturer enrichment, whitespace migration, `/verify` with all 4 verdicts, vision extraction, responsive Vouch UI, client-side image downscaling, security headers, NAPAMS handoff, local confirmed-result cache, the known-fake library (categories, aliases, appearance descriptors, advisory leads, optional registration number), and asserted API/smoke/browser tests. Deployment is intentionally deferred.
 
 Not done / known gaps:
 - NAPAMS is not a bulk source; the current flow is intentionally manual and CAPTCHA-safe.
@@ -154,6 +177,9 @@ Not done / known gaps:
 - Camera (`getUserMedia`) needs HTTPS or localhost and will not work over a LAN IP.
 - Groq uses a 25-second timeout but no retry/backoff or circuit breaker.
 - The SQLite registry is a point-in-time snapshot with no scheduled refresh.
+- The known-fake library has **17 rows** and only 10 of them carry photos, so the drug entries have no `appearance` text until `enrich:fake-appearance` is run. Appearance matching is inert for any row without it.
+- Food and cosmetic library entries have no photos at all (`photos: []`) — the alert pages carry images we have not downloaded. Leads for them render as text with no comparison thumbnail.
+- `appearance` matching compares free text against free text, so it is low-precision by nature. It is a lead generator, not an identifier; there is no image-similarity matching.
 
 ## Security findings (observed during recon, not yet reported)
 

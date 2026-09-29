@@ -36,6 +36,10 @@ function sessionId() {
 
 let visionEnabled = false;
 let activeCamera = null;
+// Appearance descriptor for the current photo, when the vision service produced
+// one. Sent to /verify so a pack with no registration number can still be
+// compared against the known-fake library.
+let packDescriptor = null;
 
 fetch('/api/config')
   .then((response) => response.json())
@@ -128,6 +132,7 @@ function clearImage() {
     activeCamera = null;
   }
   els.fileInput.value = '';
+  packDescriptor = null;
   els.preview.removeAttribute('src');
   els.previewWrap.classList.add('hidden');
   els.previewWrap.classList.remove('is-reading');
@@ -170,14 +175,26 @@ async function handleImage(dataUrl) {
   }
 
   els.preview.src = optimizedImage;
-  document.getElementById('report-photo')?.removeAttribute('disabled');
+  // The report modal opens after the check, so this only matters if one is
+  // somehow still on screen when a new photo lands.
+  const reportPhoto = document.getElementById('report-photo');
+  if (reportPhoto) {
+    reportPhoto.disabled = false;
+    const hint = reportPhoto.closest('.report-check')?.querySelector('.report-check-hint');
+    if (hint) hint.textContent = 'optional';
+  }
 
   if (!visionEnabled) {
+    packDescriptor = null;
     els.previewWrap.classList.remove('is-reading');
     setOcrStatus('Photo attached. Type the NAFDAC number below to check it.', true);
     els.nafdac.focus();
     return;
   }
+
+  // Runs alongside the number read. A description is a bonus, never a
+  // requirement: if it fails, the registry check still goes ahead.
+  describePack(optimizedImage);
 
   setOcrStatus('<span class="spinner spinner-dark"></span>Reading the NAFDAC number…');
 
@@ -224,6 +241,20 @@ async function handleImage(dataUrl) {
   }
 }
 
+async function describePack(dataUrl) {
+  packDescriptor = null;
+  try {
+    const response = await fetch('/api/describe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: dataUrl }),
+    });
+    if (!response.ok) return;
+    const result = await response.json();
+    packDescriptor = typeof result.descriptor === 'string' && result.descriptor ? result.descriptor : null;
+  } catch {}
+}
+
 function setOcrStatus(html, warn = false) {
   els.ocrStatus.innerHTML = html;
   els.ocrStatus.classList.remove('hidden');
@@ -242,13 +273,17 @@ async function submitVerify() {
   const country = els.country.value;
 
   if (!els.form.reportValidity()) return;
-  const validNumber = country === 'KE' ? PPB_RE.test(nafdac) : NAFDAC_RE.test(nafdac);
-  if (!validNumber) {
-    showLocalError(country === 'KE'
-      ? 'Enter the Kenya PPB registration number exactly as printed on the pack.'
-      : 'Enter the NAFDAC number in the format shown on the pack, such as A11-0009.');
-    els.nafdac.focus();
-    return;
+  // The registration number is optional. With it we check the registry; without
+  // it we only have the name and photo to compare against known fakes.
+  if (nafdac) {
+    const validNumber = country === 'KE' ? PPB_RE.test(nafdac) : NAFDAC_RE.test(nafdac);
+    if (!validNumber) {
+      showLocalError(country === 'KE'
+        ? 'Enter the Kenya PPB registration number exactly as printed on the pack, or leave the field blank.'
+        : 'Enter the NAFDAC number in the format shown on the pack, such as A11-0009, or leave the field blank.');
+      els.nafdac.focus();
+      return;
+    }
   }
   if (!productName) {
     showLocalError('Enter the product name exactly as printed on the pack.');
@@ -256,12 +291,16 @@ async function submitVerify() {
     return;
   }
 
-  setResult('<div class="result r-loading"><div class="result-head"><span class="spinner"></span><h2>Checking the registry…</h2></div><p class="result-message">Comparing the product details with the local NAFDAC snapshot.</p></div>');
+  setResult(nafdac
+    ? '<div class="result r-loading"><div class="result-head"><span class="spinner"></span><h2>Checking the registry…</h2></div><p class="result-message">Comparing the product details with the local NAFDAC snapshot.</p></div>'
+    : '<div class="result r-loading"><div class="result-head"><span class="spinner"></span><h2>Checking known fakes…</h2></div><p class="result-message">No registration number was entered, so this compares the name and photo with our library of flagged products.</p></div>');
   els.verifyButton.disabled = true;
-  els.verifyLabel.textContent = 'Checking registration…';
+  els.verifyLabel.textContent = nafdac ? 'Checking registration…' : 'Checking known fakes…';
 
-  const query = new URLSearchParams({ nafdac, product_name: productName, country });
+  const query = new URLSearchParams({ product_name: productName, country });
+  if (nafdac) query.set('nafdac', nafdac);
   if (manufacturer) query.set('manufacturer', manufacturer);
+  if (packDescriptor) query.set('appearance', packDescriptor);
 
   try {
     const response = await fetch(`/verify?${query}`);
@@ -332,6 +371,7 @@ function paint(result, input) {
   const parts = [];
   if (result.hazard) {
     parts.push(hazardBanner(result.hazard));
+    parts.push(comparePanel(result.hazard));
   }
   if (result.community_flag?.flagged) {
     parts.push(communityBanner(result.community_flag));
@@ -342,9 +382,11 @@ function paint(result, input) {
 
   if (result.status === 'not_found') {
     parts.push(
-      '<p class="result-message">This number is not in our copy of the registry. Double-check it against the pack — if it matches, the product may be unregistered, or our copy may be out of date.</p>',
+      input.nafdac
+        ? '<p class="result-message">This number is not in our copy of the registry. Double-check it against the pack — if it matches, the product may be unregistered, or our copy may be out of date.</p>'
+        : '<p class="result-message">No registration number was entered, so only the product name and photo were compared with known fakes. Add the number from the pack for a full registration check.</p>',
       `<ul class="result-meta">
-        <li><span class="k">NAFDAC number</span><span class="v">${escapeHtml(input.nafdac)}</span></li>
+        ${input.nafdac ? `<li><span class="k">NAFDAC number</span><span class="v">${escapeHtml(input.nafdac)}</span></li>` : ''}
         <li><span class="k">Product name entered</span><span class="v">${escapeHtml(input.productName)}</span></li>
       </ul>`,
     );
@@ -365,17 +407,26 @@ function paint(result, input) {
     }
   }
 
-  if (input.country === 'NG' && (result.status === 'mismatch' || result.status === 'not_found')) {
-    parts.push(napamsPanel(input));
+  if (Array.isArray(result.suspects) && result.suspects.length > 0) {
+    parts.push(suspectsPanel(result.suspects));
   }
-  if (result.status === 'mismatch' || result.status === 'not_found') {
-    parts.push(reportPanel(input, result));
+
+  // The NAPAMS handoff is keyed by a registration number, so it is only
+  // offered when the user entered one. Reporting is not: it is asked after
+  // every check, including the ones with no number.
+  if (input.nafdac && input.country === 'NG' && (result.status === 'mismatch' || result.status === 'not_found')) {
+    parts.push(napamsPanel(input));
   }
 
   parts.push('<p class="result-footnote">This result reflects the local registry snapshot and does not assess product quality or authenticity beyond the available registration data.</p>');
   setResult(`<div class="result ${treatment.className}">${parts.join('')}</div>`);
   setupNapamsPanel(input);
-  setupReportPanel(input, result);
+
+  if (skipNextReportPrompt) {
+    skipNextReportPrompt = false;
+  } else {
+    openReportModal(input, result);
+  }
 }
 
 function hazardBanner(hazard) {
@@ -388,6 +439,60 @@ function hazardBanner(hazard) {
     <span>${escapeHtml(hazard.hazard)}</span>
     <span>Batches: ${batches} · Issued ${escapeHtml(hazard.alert_date)} · <a href="${escapeHtml(hazard.source_url)}" target="_blank" rel="noopener">Official alert</a></span>
   </div>`;
+}
+
+function comparePanel(hazard) {
+  const userPhoto = els.preview.src;
+  const refs = Array.isArray(hazard.photos) ? hazard.photos.slice(0, 2) : [];
+  if (!userPhoto || refs.length === 0) return '';
+  return `<section class="compare-panel" aria-label="Compare your pack with the flagged pack">
+    <h3>Compare these two packs</h3>
+    <p>Left: your photo. Right: NAFDAC's photo of the flagged product. Check the seal, print, colours, and spelling — fakes often differ in small details.</p>
+    <div class="compare-grid">
+      <figure><img src="${escapeHtml(userPhoto)}" alt="Your product photo"><figcaption>Your photo</figcaption></figure>
+      <figure>${refs.map((src) => `<img src="${escapeHtml(src)}" alt="Official photo of the flagged product" loading="lazy">`).join('')}<figcaption>Official flagged pack</figcaption></figure>
+    </div>
+  </section>`;
+}
+
+const CATEGORY_LABELS = {
+  drug: 'Medicine',
+  food: 'Food or drink',
+  cosmetic: 'Cosmetic',
+  device: 'Medical device',
+  chemical: 'Chemical',
+  other: 'Regulated product',
+};
+
+// Leads from the known-fake library. Deliberately framed as leads, not a
+// finding: the match is fuzzy by nature and must never read as a verdict.
+function suspectsPanel(suspects) {
+  const cards = suspects.map((suspect) => {
+    const photo = Array.isArray(suspect.photos) ? suspect.photos[0] : null;
+    const category = CATEGORY_LABELS[suspect.category] || CATEGORY_LABELS.other;
+    const batches = Array.isArray(suspect.batches) && suspect.batches.length > 0
+      ? `Batches ${suspect.batches.map(escapeHtml).join(', ')}`
+      : 'No batch listed';
+    const why = suspect.matched_on === 'appearance'
+      ? 'Your photo looks like this flagged pack'
+      : 'The name you entered is close to this flagged product';
+    return `<li class="suspect">
+      ${photo ? `<img src="${escapeHtml(photo)}" alt="Official photo of the flagged product" loading="lazy">` : ''}
+      <div class="suspect-body">
+        <span class="suspect-cat">${escapeHtml(category)}</span>
+        <strong>${escapeHtml(suspect.product_name)}</strong>
+        <p>${escapeHtml(suspect.hazard)}</p>
+        <p class="suspect-why">${why} · ${Math.max(0, Math.min(100, Math.round(suspect.score)))}% similarity</p>
+        <p class="suspect-meta">${batches} · <a href="${escapeHtml(suspect.source_url)}" target="_blank" rel="noopener">NAFDAC alert ${escapeHtml(suspect.alert_number)}</a></p>
+      </div>
+    </li>`;
+  }).join('');
+
+  return `<section class="suspect-panel" aria-labelledby="suspect-title">
+    <h3 id="suspect-title">Possible match in our known-fake library</h3>
+    <p>These are leads from NAFDAC alerts on counterfeit and unregistered products, matched on the name you typed and any photo you attached. They are not a finding — compare the pack by hand before you decide.</p>
+    <ul class="suspect-list">${cards}</ul>
+  </section>`;
 }
 
 function communityBanner(flag) {
@@ -468,6 +573,7 @@ async function setupNapamsPanel(input) {
       els.name.value = name;
       els.mfr.value = manufacturer;
       status.textContent = 'Saved locally. Checking the product again…';
+      skipNextReportPrompt = true;
       await submitVerify();
     } catch (error) {
       status.textContent = `Could not save this result: ${error.message}`;
@@ -476,105 +582,182 @@ async function setupNapamsPanel(input) {
   });
 }
 
-function reportPanel(input) {
+// ---------- post-check report modal ----------
+//
+// Reporting used to be a three-step wizard tucked under the verdict, and it
+// only appeared for packs the registry could not confirm. It is now a modal
+// that opens after every check, asks one plain question, and — when NAFDAC
+// published a photo of the flagged product — puts that photo next to yours so
+// the shopper has something real to compare against.
+
+const REPORT_ISSUES = [
+  { label: 'Seal broken or resealed', note: 'The seal looked broken or tampered with' },
+  { label: 'Blurry or wrong print', note: 'The print looked blurry or wrong' },
+  { label: 'Different colour or design', note: 'The colour or design looked different from the pack I usually buy' },
+  { label: 'Strange taste or smell', note: 'It tasted or smelled strange' },
+  { label: 'Expiry date looks changed', note: 'The expiry date looked changed' },
+  { label: 'Something else', note: '' },
+];
+
+const REPORT_LEDES = {
+  verified: 'The registry matched this pack. A damaged or resealed pack can still be a problem, so tell us if something looked off.',
+  verified_inactive: 'This approval is not active right now. Did the pack look different or damaged where you bought it?',
+  mismatch: 'These details did not match the registry. Does the pack look different or damaged?',
+  not_found: 'This pack could not be confirmed. Does it look different or damaged?',
+};
+
+let reportModalEl = null;
+// Set when a check is re-run on purpose (after a report or a NAPAMS cache save)
+// so the modal does not immediately ask the same question again.
+let skipNextReportPrompt = false;
+let lastFocusedBeforeModal = null;
+
+function closeReportModal() {
+  if (!reportModalEl) return;
+  reportModalEl.remove();
+  reportModalEl = null;
+  document.documentElement.classList.remove('modal-open');
+  const restore = lastFocusedBeforeModal;
+  lastFocusedBeforeModal = null;
+  if (restore && document.contains(restore)) restore.focus({ preventScroll: true });
+}
+
+document.addEventListener('keydown', (event) => {
+  if (!reportModalEl) return;
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closeReportModal();
+    return;
+  }
+  if (event.key !== 'Tab') return;
+  const focusable = [...reportModalEl.querySelectorAll('button, input, textarea, a[href]')]
+    .filter((element) => !element.disabled);
+  if (focusable.length === 0) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
+});
+
+// The reference pack: whatever official imagery this check turned up, or the
+// alert's written descriptor when NAFDAC published no photo. Never a stand-in.
+function reportReference(result) {
+  const hazard = result.hazard;
+  const suspects = Array.isArray(result.suspects) ? result.suspects : [];
+  const photos = [];
+  for (const src of [...(hazard?.photos || []), ...suspects.flatMap((suspect) => suspect.photos || [])]) {
+    if (typeof src === 'string' && src && !photos.includes(src)) photos.push(src);
+  }
+  const alertNumber = hazard?.alert_number || suspects[0]?.alert_number || null;
+  const sourceUrl = hazard?.source_url || suspects.find((suspect) => suspect.source_url)?.source_url || null;
+  const link = sourceUrl
+    ? `<a class="modal-reference-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener">Read the official alert${alertNumber ? ` ${escapeHtml(alertNumber)}` : ''}</a>`
+    : '';
+
+  if (photos.length > 0) {
+    const refs = photos.slice(0, 2);
+    const userPhoto = els.preview.src;
+    return `<div class="modal-reference">
+      <p class="modal-reference-label">NAFDAC's photo of the flagged pack${alertNumber ? ` · alert ${escapeHtml(alertNumber)}` : ''}</p>
+      <div class="compare-grid">
+        ${userPhoto ? `<figure><img src="${escapeHtml(userPhoto)}" alt="Your product photo"><figcaption>Your photo</figcaption></figure>` : ''}
+        <figure>
+          ${refs.map((src) => `<img src="${escapeHtml(src)}" alt="Official NAFDAC photo of the flagged product" loading="lazy">`).join('')}
+          <figcaption>Flagged pack</figcaption>
+        </figure>
+      </div>
+      ${link}
+    </div>`;
+  }
+
+  const appearance = suspects.find((suspect) => suspect.appearance)?.appearance;
+  if (appearance) {
+    return `<div class="modal-reference modal-reference-text">
+      <p class="modal-reference-label">No photo exists for this alert${alertNumber ? ` (${escapeHtml(alertNumber)})` : ''} — here is what to look for</p>
+      <p>${escapeHtml(appearance)}</p>
+      ${link}
+    </div>`;
+  }
+  return '';
+}
+
+function openReportModal(input, result) {
+  closeReportModal();
   const photoAvailable = Boolean(els.preview.src);
-  return `<section class="report-panel" aria-labelledby="report-title">
-    <h3 id="report-title">Does this pack look wrong?</h3>
-    <p>Two quick steps and your warning can protect the next shopper. After 3 reports about the same product in 30 days, everyone who checks it sees a warning.</p>
-    <ol class="wizard-steps" aria-label="Report progress">
-      <li data-wstep="1" class="current" aria-current="step">1 · Issue</li>
-      <li data-wstep="2">2 · Details</li>
-      <li data-wstep="3">3 · Send</li>
-    </ol>
-    <form id="report-form" class="report-form" novalidate>
-      <div class="wizard-page" data-page="1">
-        <p class="wizard-q">What looked wrong with the pack?</p>
-        <div class="issue-chips">
-          <button type="button" class="chip" data-issue="The seal looked broken or tampered">Broken seal</button>
-          <button type="button" class="chip" data-issue="The print looked blurry or wrong">Blurry print</button>
-          <button type="button" class="chip" data-issue="It tasted or smelled strange">Strange taste or smell</button>
-          <button type="button" class="chip" data-issue="The expiry date looked changed">Changed expiry date</button>
-          <button type="button" class="chip" data-issue="">Something else</button>
+  const modal = document.createElement('div');
+  modal.className = 'report-modal';
+  modal.id = 'report-modal';
+  modal.innerHTML = `
+    <section class="report-modal-card" role="dialog" aria-modal="true" aria-labelledby="report-modal-title" tabindex="-1">
+      <button type="button" class="modal-close" id="report-close" aria-label="Close without reporting">\u00d7</button>
+      <p class="modal-kicker">One quick question</p>
+      <h2 id="report-modal-title">Did this pack look different or damaged?</h2>
+      <p class="modal-lede">${escapeHtml(REPORT_LEDES[result.status] || REPORT_LEDES.not_found)}</p>
+      <p class="modal-pack">${escapeHtml(input.productName)} <span>${input.nafdac ? escapeHtml(input.nafdac) : 'no registration number entered'}</span></p>
+      ${reportReference(result)}
+      <form id="report-form" class="report-form" novalidate>
+        <p class="report-question" id="report-issue-label">What would you tell the next shopper?</p>
+        <div class="issue-chips" role="group" aria-labelledby="report-issue-label">
+          ${REPORT_ISSUES.map((issue, index) => `<button type="button" class="chip" data-issue-index="${index}" aria-pressed="false">${escapeHtml(issue.label)}</button>`).join('')}
         </div>
-        <button type="button" id="report-no" class="btn btn-ghost">Pack looked fine — no report</button>
-      </div>
-      <div class="wizard-page hidden" data-page="2">
         <div class="report-fields">
-          <label>Where did you see it?<input id="report-area" type="text" maxlength="120" required placeholder="e.g. Ikeja, Lagos"></label>
-          <label>Tell us briefly<textarea id="report-note" maxlength="500" required placeholder="e.g. Seal was already cut open"></textarea></label>
+          <label for="report-area">Where did you see it?<input id="report-area" type="text" maxlength="120" autocomplete="off" placeholder="e.g. Ikeja, Lagos"></label>
+          <label for="report-note">What did you notice?<textarea id="report-note" maxlength="500" placeholder="e.g. Seal was already cut open"></textarea></label>
         </div>
-        <div class="wizard-nav">
-          <button type="button" id="report-back-2" class="btn btn-ghost">Back</button>
-          <button type="button" id="report-next-2" class="btn btn-secondary">Continue</button>
+        <div class="report-options">
+          <label class="report-check"><input id="report-photo" type="checkbox" ${photoAvailable ? '' : 'disabled'}> Attach my photo <span class="report-check-hint">${photoAvailable ? 'optional' : 'no photo yet'}</span></label>
+          <button id="report-location" class="btn btn-ghost" type="button">Use my location</button>
         </div>
-      </div>
-      <div class="wizard-page hidden" data-page="3">
-        <p class="wizard-q">Anything to attach? Both optional.</p>
-        <label class="report-check"><input id="report-photo" type="checkbox" ${photoAvailable ? '' : 'disabled'}> Attach the current product photo</label>
-        <button id="report-location" class="btn btn-ghost" type="button">Use my location</button>
-        <p id="report-summary" class="wizard-summary"></p>
-        <div class="wizard-nav">
-          <button type="button" id="report-back-3" class="btn btn-ghost">Back</button>
-          <button class="btn btn-primary" type="submit">Submit report</button>
+        <p id="report-status" class="report-status" role="status"></p>
+        <div class="modal-actions">
+          <button type="button" id="report-no" class="btn btn-ghost">Pack looked fine</button>
+          <button class="btn btn-primary" type="submit">Send report</button>
         </div>
-      </div>
-      <p id="report-status" class="report-status" role="status"></p>
-    </form>
-  </section>`;
+      </form>
+    </section>`;
+
+  document.body.append(modal);
+  reportModalEl = modal;
+  document.documentElement.classList.add('modal-open');
+  lastFocusedBeforeModal = document.activeElement;
+  modal.addEventListener('mousedown', (event) => {
+    if (event.target === modal) closeReportModal();
+  });
+  modal.querySelector('.report-modal-card').focus({ preventScroll: true });
+  setupReportForm(modal, input, result);
 }
 
-function wizardGoto(step) {
-  document.querySelectorAll('#report-form .wizard-page').forEach((page) => {
-    page.classList.toggle('hidden', page.dataset.page !== String(step));
-  });
-  document.querySelectorAll('#report-form .wizard-steps li').forEach((item) => {
-    const active = item.dataset.wstep === String(step);
-    item.classList.toggle('current', active);
-    if (active) item.setAttribute('aria-current', 'step');
-    else item.removeAttribute('aria-current');
-  });
-}
-
-async function setupReportPanel(input, result) {
-  const form = document.getElementById('report-form');
-  if (!form) return;
-  const status = document.getElementById('report-status');
-  const areaEl = document.getElementById('report-area');
-  const noteEl = document.getElementById('report-note');
+function setupReportForm(modal, input, result) {
+  const form = modal.querySelector('#report-form');
+  const status = modal.querySelector('#report-status');
+  const areaEl = modal.querySelector('#report-area');
+  const noteEl = modal.querySelector('#report-note');
+  const sendButton = form.querySelector('button[type=submit]');
+  const chips = [...form.querySelectorAll('.chip')];
   let coords = null;
 
-  form.querySelectorAll('.chip').forEach((chip) => {
+  chips.forEach((chip) => {
     chip.addEventListener('click', () => {
-      if (chip.dataset.issue) noteEl.value = `${chip.dataset.issue}: `;
-      wizardGoto(2);
+      const issue = REPORT_ISSUES[Number(chip.dataset.issueIndex)];
+      chips.forEach((other) => {
+        const active = other === chip;
+        other.classList.toggle('selected', active);
+        other.setAttribute('aria-pressed', String(active));
+      });
+      if (issue?.note) noteEl.value = issue.note;
       areaEl.focus();
     });
   });
 
-  document.getElementById('report-no')?.addEventListener('click', () => {
-    form.innerHTML = '<p class="wizard-done">Thanks — no report needed. If anything changes, you can report from a new check.</p>';
-  });
+  modal.querySelector('#report-close').addEventListener('click', closeReportModal);
+  modal.querySelector('#report-no').addEventListener('click', closeReportModal);
 
-  document.getElementById('report-back-2')?.addEventListener('click', () => wizardGoto(1));
-  document.getElementById('report-back-3')?.addEventListener('click', () => wizardGoto(2));
-  document.getElementById('report-next-2')?.addEventListener('click', () => {
-    if (!areaEl.value.trim()) {
-      status.textContent = 'Tell us where you saw it — an area or market name is enough.';
-      areaEl.focus();
-      return;
-    }
-    if (!noteEl.value.trim()) {
-      status.textContent = 'Add one line about what looked wrong.';
-      noteEl.focus();
-      return;
-    }
-    status.textContent = '';
-    document.getElementById('report-summary').textContent =
-      `${input.nafdac} · ${areaEl.value.trim()}`;
-    wizardGoto(3);
-  });
-
-  document.getElementById('report-location')?.addEventListener('click', () => {
+  modal.querySelector('#report-location').addEventListener('click', () => {
     if (!('geolocation' in navigator)) {
       status.textContent = 'Location is not available in this browser.';
       return;
@@ -594,11 +777,20 @@ async function setupReportPanel(input, result) {
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
-    const button = form.querySelector('button[type=submit]');
-    const area = document.getElementById('report-area').value.trim();
-    const note = document.getElementById('report-note').value.trim();
-    const attachPhoto = document.getElementById('report-photo')?.checked && Boolean(els.preview.src);
-    button.disabled = true;
+    const area = areaEl.value.trim();
+    const note = noteEl.value.trim();
+    if (!note) {
+      status.textContent = 'Pick what looked wrong above, or add a line of your own.';
+      noteEl.focus();
+      return;
+    }
+    if (!area) {
+      status.textContent = 'Tell us where you saw it — an area or market name is enough.';
+      areaEl.focus();
+      return;
+    }
+    const attachPhoto = modal.querySelector('#report-photo')?.checked && Boolean(els.preview.src);
+    sendButton.disabled = true;
     status.textContent = 'Submitting your report…';
 
     try {
@@ -607,7 +799,8 @@ async function setupReportPanel(input, result) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          nafdac_number: input.nafdac,
+          nafdac_number: input.nafdac || undefined,
+          product_name: input.productName,
           country: input.country,
           location_area: area,
           note,
@@ -626,6 +819,14 @@ async function setupReportPanel(input, result) {
               country: record.country,
               source: record.source,
             } : null,
+            suspects: Array.isArray(result.suspects)
+              ? result.suspects.map((suspect) => ({
+                  alert_number: suspect.alert_number,
+                  category: suspect.category,
+                  score: suspect.score,
+                  matched_on: suspect.matched_on,
+                }))
+              : [],
           },
         }),
       });
@@ -635,11 +836,14 @@ async function setupReportPanel(input, result) {
           ? 'Too many reports from this device. Try again later.'
           : body.error || 'report_failed');
       }
-      status.textContent = `Report saved. Checking this product again…`;
+      status.textContent = 'Report saved. Thank you — refreshing the check…';
+      skipNextReportPrompt = true;
+      await new Promise((resolve) => setTimeout(resolve, 900));
+      closeReportModal();
       await submitVerify();
     } catch (error) {
       status.textContent = `Could not submit this report: ${error.message}`;
-      button.disabled = false;
+      sendButton.disabled = false;
     }
   });
 }

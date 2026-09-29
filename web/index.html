@@ -49,12 +49,12 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14v5h14v-5"/></svg>
           Upload image
         </label>
-        <input id="file-input" type="file" accept="image/*" capture="environment" hidden>
+        <input id="file-input" type="file" accept="image/*" hidden>
       </div>
 
       <div class="privacy-note">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2M5 10h14v10H5V10Z"/></svg>
-        <p><strong>Your photo stays optional.</strong> When photo reading is enabled, the selected image is sent to the configured vision service to locate the registration number.</p>
+        <p><strong>Your photo stays optional.</strong> When photo reading is enabled, the selected image is sent to the configured vision service to locate the registration number and describe how the pack looks, so it can be compared with known fakes.</p>
       </div>
 
       <div id="preview-wrap" class="preview-wrap hidden">
@@ -77,7 +77,7 @@
         <span class="step-number" aria-hidden="true">2</span>
         <div>
           <h2 id="verify-title">Confirm the product</h2>
-          <p id="confirm-hint">Enter the registration number and product name exactly as printed on the pack.</p>
+          <p id="confirm-hint">Enter the product name exactly as printed on the pack. The registration number is optional.</p>
         </div>
       </div>
 
@@ -91,9 +91,9 @@
         </div>
 
         <div class="field">
-          <label for="in-nafdac">Registration number <span class="required">Required</span></label>
-          <input id="in-nafdac" name="nafdac" type="text" placeholder="e.g. A11-0009" spellcheck="false" maxlength="32" required aria-describedby="nafdac-help" inputmode="text" enterkeyhint="next">
-          <span id="nafdac-help" class="field-help">You can scan this from the pack or type it.</span>
+          <label for="in-nafdac">Registration number <span class="optional">Optional — leave blank to check by name</span></label>
+          <input id="in-nafdac" name="nafdac" type="text" placeholder="e.g. A11-0009" spellcheck="false" maxlength="32" aria-describedby="nafdac-help" inputmode="text" enterkeyhint="next">
+          <span id="nafdac-help" class="field-help">Scan it from the pack or type it. No number printed? Leave this blank — food, drinks and cosmetics often have none, and the name and photo are still checked against known fakes.</span>
         </div>
 
         <div class="field">

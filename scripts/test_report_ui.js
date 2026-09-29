@@ -83,28 +83,54 @@ async function verify(page, nafdac, productName) {
     });
 
     await page.goto(BASE, { waitUntil: 'networkidle' });
-    await verify(page, 'RPT-UI-001', 'UI Report Tablets');
-    assert.match(await page.getAttribute('#result .result', 'class'), /r-notfound/);
-    assert.equal(await page.locator('#report-form').count(), 1);
 
+    // The photo comes first, because the modal opens after the check and can
+    // offer to attach it.
     await page.setInputFiles('#file-input', PHOTO);
     await waitForIdle(page);
+
+    await verify(page, 'RPT-UI-001', 'UI Report Tablets');
+    assert.match(await page.getAttribute('#result .result', 'class'), /r-notfound/);
+
+    // The report prompt is now a modal, and it opens after every check.
+    const modal = page.locator('#report-modal');
+    await modal.waitFor({ state: 'visible', timeout: 10000 });
+    assert.equal(await page.locator('#report-form').count(), 1);
+    assert.match(await page.locator('#report-modal-title').innerText(), /look different or damaged/i);
+
     await page.click('.issue-chips .chip:first-child');
-    assert.equal(await page.locator('.wizard-page[data-page="2"]:not(.hidden)').count(), 1);
+    assert.equal(await page.locator('.issue-chips .chip.selected').count(), 1);
+    assert.match(await page.locator('#report-note').inputValue(), /seal/i);
     await page.fill('#report-area', 'UI Test Area');
-    await page.fill('#report-note', 'UI end-to-end test report');
-    await page.click('#report-next-2');
-    assert.equal(await page.locator('.wizard-page[data-page="3"]:not(.hidden)').count(), 1);
     assert.equal(await page.isEnabled('#report-photo'), true);
     await page.check('#report-photo');
+
     const [reportResponse] = await Promise.all([
       page.waitForResponse((response) => response.url().includes('/report') && response.request().method() === 'POST'),
       page.click('#report-form button[type=submit]'),
     ]);
     assert.equal(reportResponse.status(), 201);
+    await modal.waitFor({ state: 'detached', timeout: 20000 });
 
     const listed = await (await fetch(`${BASE}/api/reports?country=KE`)).json();
-    assert.ok(listed.reports.some((item) => item.nafdac_number === 'RPT-UI-001' && item.location_area === 'UI Test Area'));
+    assert.ok(listed.reports.some((item) => item.nafdac_number === 'RPT-UI-001' && item.product_name === 'UI Report Tablets' && item.location_area === 'UI Test Area'));
+
+    // A check with no registration number is reportable too, and the modal
+    // shows NAFDAC's own photo of the flagged pack when the library has one.
+    await page.fill('#in-nafdac', '');
+    await page.fill('#in-name', 'Cowbell Our Milk');
+    await page.click('#verify-form button[type=submit]');
+    await waitForResult(page);
+    await modal.waitFor({ state: 'visible', timeout: 10000 });
+    assert.match(await page.locator('.modal-pack').innerText(), /no registration number entered/i);
+    assert.ok(await page.locator('.modal-reference img').count() >= 1, 'the flagged pack photo should be shown');
+    assert.match(await page.locator('.modal-reference-label').innerText(), /flagged pack/i);
+    await page.screenshot({ path: path.join(OUT, 'report-modal.png') });
+
+    // Escape closes without submitting, and leaves the check result in place.
+    await page.keyboard.press('Escape');
+    await modal.waitFor({ state: 'detached', timeout: 10000 });
+    assert.ok(await page.locator('#result .result').count() > 0);
 
     for (const session of ['ui-extra-one', 'ui-extra-two']) {
       const extra = await fetch(`${BASE}/report`, {
@@ -112,6 +138,7 @@ async function verify(page, nafdac, productName) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           nafdac_number: 'RPT-UI-001',
+          product_name: 'UI Report Tablets',
           country: 'KE',
           location_area: `UI Extra ${session}`,
           note: 'Threshold test report',
@@ -123,12 +150,16 @@ async function verify(page, nafdac, productName) {
     }
 
     await verify(page, 'RPT-UI-001', 'UI Report Tablets');
+    await modal.waitFor({ state: 'visible', timeout: 10000 });
+    await page.click('#report-no');
+    await modal.waitFor({ state: 'detached', timeout: 10000 });
+
     await page.waitForSelector('.community-flag', { timeout: 15000 });
     assert.match(await page.locator('.community-flag').innerText(), /3 reports in the last 30 days/i);
     await page.screenshot({ path: path.join(OUT, 'report-flag.png'), fullPage: true });
 
     assert.deepEqual(errors, []);
-    console.log('Report UI and threshold flag checks passed');
+    console.log('Report modal, number-optional reporting, and threshold flag checks passed');
   } finally {
     await browser.close();
     await stopServer(server);
