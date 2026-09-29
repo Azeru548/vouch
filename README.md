@@ -83,7 +83,7 @@ npm run test:hazards     # hazard matching + banner ordering
 npm run test:fakes       # known-fake library: migration, matching, lead UI
 npm run test:reports     # report API, migration, community flag, rate limit
 npm run test:report-ui   # report modal flow, Playwright
-npm run test:e2e         # full desktop + mobile flows
+npm run test:e2e         # full desktop + mobile flows (Playwright)
 ```
 
 Test suites spawn the real server against a temporary database and use per-process ports; they never touch the shipped data.
