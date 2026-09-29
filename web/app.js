@@ -568,6 +568,7 @@ function suspectsPanel(suspects) {
     <h3 id="suspect-title">Possible match in our known-fake library</h3>
     <p>These are leads from NAFDAC alerts on counterfeit and unregistered products, matched on the name you typed and any photos you attached. They are not a finding — compare the pack by hand before you decide.</p>
     <ul class="suspect-list">${cards}</ul>
+    <p class="suspect-more">The full register of flagged products, with every reference photo, lives on the <a href="/alerts.html">Flagged products page</a>.</p>
   </section>`;
 }
 
@@ -657,6 +658,32 @@ async function setupNapamsPanel(input) {
     }
   });
 }
+
+// ---------- alerts-cue announcement ----------
+//
+// The flagged-products register is easy to miss as a footer link, so the main
+// page announces it once. Dismissal persists for 30 days, then it asks again.
+
+const ALERTS_CUE_KEY = 'vouch-alerts-cue-dismissed-at';
+const ALERTS_CUE_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000;
+
+function setupAlertsCue() {
+  const cue = document.getElementById('alerts-cue');
+  if (!cue) return;
+  let dismissedAt = 0;
+  try {
+    dismissedAt = Number(window.localStorage.getItem(ALERTS_CUE_KEY) || 0);
+  } catch {}
+  if (Number.isFinite(dismissedAt) && Date.now() - dismissedAt < ALERTS_CUE_COOLDOWN_MS) return;
+  cue.classList.remove('hidden');
+  document.getElementById('alerts-cue-dismiss')?.addEventListener('click', () => {
+    cue.classList.add('hidden');
+    try {
+      window.localStorage.setItem(ALERTS_CUE_KEY, String(Date.now()));
+    } catch {}
+  });
+}
+setupAlertsCue();
 
 // ---------- post-check report modal ----------
 //

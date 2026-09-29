@@ -119,6 +119,62 @@ h1, h2, h3 {
   font-weight: 800;
 }
 
+.topnav-link {
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 750;
+  text-decoration: none;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.35);
+  padding-bottom: 0.1rem;
+}
+
+.topnav-link:hover,
+.topnav-link:focus-visible {
+  border-bottom-color: #fff;
+}
+
+.topnav-link-dark {
+  color: var(--ink-deep);
+  border-bottom-color: rgba(35, 33, 95, 0.35);
+}
+
+.topnav-link-dark:hover,
+.topnav-link-dark:focus-visible {
+  border-bottom-color: var(--ink-deep);
+}
+
+/* Announcement cue for the flagged-products register. */
+.alerts-cue {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.1rem;
+  padding: 0.8rem 1rem;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-small);
+  background: var(--amber-bg);
+  box-shadow: var(--shadow-soft);
+}
+
+.alerts-cue-copy strong {
+  display: block;
+  color: var(--ink-deep);
+  font-size: 0.92rem;
+}
+
+.alerts-cue-copy span {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+
+.alerts-cue-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 .brand strong,
 .brand small { display: block; }
 
@@ -1413,6 +1469,14 @@ html.modal-open { overflow: hidden; }
 
 /* ---------- flagged products register (/alerts.html) ---------- */
 
+.suspect-more {
+  margin: 0.7rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+}
+
+.suspect-more a { color: var(--info); font-weight: 700; }
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -1663,6 +1727,20 @@ html.modal-open { overflow: hidden; }
   color: var(--info);
   font-size: 0.82rem;
   font-weight: 700;
+}
+
+/* The alerts page header sits on light paper, so the brand text needs the
+   dark variant — the default .brand is white for the indigo topbar. */
+.brand-dark,
+.brand-dark small {
+  color: var(--ink-deep);
+}
+
+.brand-dark .brand-mark {
+  color: var(--ink-deep);
+  border-color: var(--ink-deep);
+  outline-color: rgba(35, 33, 95, 0.5);
+  background: rgba(35, 33, 95, 0.05);
 }
 
 .alerts-empty {

@@ -21,7 +21,9 @@
           <small>Product registration check</small>
         </span>
       </a>
-
+      <nav class="topnav" aria-label="Site">
+        <a class="topnav-link" href="/alerts.html">Flagged products</a>
+      </nav>
     </div>
     <div class="hero-copy">
       <h1>Check the pack before you trust it.</h1>
@@ -31,6 +33,17 @@
   </header>
 
   <main class="workspace">
+    <aside id="alerts-cue" class="alerts-cue hidden" role="note">
+      <div class="alerts-cue-copy">
+        <strong>New: the Flagged products register</strong>
+        <span>Every counterfeit and unregistered pack we check against — with NAFDAC's own photos.</span>
+      </div>
+      <div class="alerts-cue-actions">
+        <a class="btn btn-secondary" href="/alerts.html">Browse the register</a>
+        <button id="alerts-cue-dismiss" class="btn btn-ghost" type="button" aria-label="Dismiss this announcement">Dismiss</button>
+      </div>
+    </aside>
+
     <section class="card scan-card" aria-labelledby="scan-title">
       <div class="section-heading">
         <span class="step-number" aria-hidden="true">1</span>
