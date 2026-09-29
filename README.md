@@ -9,8 +9,9 @@ Vouch is a mobile-first web app for shoppers in Nigeria and Kenya who hold a pro
 ## What it does
 
 - **Registry check** — the registration number + product name are matched against a local snapshot of the [NAFDAC Greenbook](https://greenbook.nafdac.gov.ng) (Nigeria) and the Kenya PPB product register (Kenya), with fuzzy name matching and an optional manufacturer cross-check. The registration number is optional: food, drinks and cosmetics often carry none.
-- **Photo to number** — a pack photo is read by a vision model to find the NAFDAC number, and separately described so it can be compared against the known-fake library. Two narrow prompts, one photo.
+- **Photo to number** — up to four pack photos (overview plus registration close-ups) are read by a vision model to find the NAFDAC number across them, and separately described so they can be compared against the known-fake library. Two narrow prompts, one photo set.
 - **Known-fake library** — a curated reference of NAFDAC-flagged counterfeit and unregistered products (drugs, foods, cosmetics) with official NAFDAC photos served offline. When the registry can't confirm a pack, similar library entries are shown as *leads, not findings*.
+- **Flagged-products register** — a standalone, blog-style page at [`/alerts.html`](web/alerts.html) listing the whole known-fake library with NAFDAC's reference photos, category filters, search, and links to each official alert. Backed by `GET /api/alerts`, so it always matches what the check uses.
 - **Hazard alerts** — 19 curated NAFDAC public alerts (recalls, counterfeits) matched by registration number or, for unregistered products, by fuzzy name. The alert banner always renders above the verdict.
 - **Community reports** — after every check, a modal asks whether the pack looked different or damaged. Three reports about the same pack within 30 days raise a warning for everyone who checks it after that. Reports work with or without a registration number.
 - **NAPAMS handoff** (Nigeria) — for unconfirmed numbers, Vouch opens the official [NAPAMS verifier](https://registration.nafdac.gov.ng/) and copies the number across. Results are cached locally only after a human completes the official check. Never automated.
@@ -59,7 +60,7 @@ Verdicts: `verified` · `verified_inactive` · `mismatch` · `not_found`. Warnin
 ## Project layout
 
 ```
-server.js            Express app: /verify, /report, /api/extract, /api/describe, /api/config, /api/health
+server.js            Express app: /verify, /report, /api/extract, /api/describe, /api/alerts, /api/config, /api/health
 web/                 Vanilla HTML/CSS/JS PWA — no framework, no build step
 web/fakes/           Official NAFDAC photos of flagged packs, served offline
 data/                SQLite registry snapshot + seed scripts' output
