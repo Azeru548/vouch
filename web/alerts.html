@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#23215f">
+  <meta name="description" content="Vouch's public register of flagged products: NAFDAC safety alerts, recalls and known counterfeit or unregistered packs, with official reference photos.">
+  <title>Vouch Alerts — Flagged products register</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="icon" type="image/svg+xml" href="/icons/seal.svg">
+</head>
+<body class="alerts-page">
+  <header class="alerts-header">
+    <div class="alerts-header-inner">
+      <a class="brand" href="/" aria-label="Back to Vouch">
+        <span class="brand-mark" aria-hidden="true">V</span>
+        <span>
+          <strong>Vouch</strong>
+          <small>Flagged products register</small>
+        </span>
+      </a>
+    </div>
+    <div class="alerts-hero">
+      <p class="alerts-stamp" aria-hidden="true">OFFICIAL RECORD</p>
+      <h1>Flagged products register</h1>
+      <p class="alerts-intro">
+        Every product below is drawn from public NAFDAC safety alerts and recalls —
+        counterfeit, substandard or unregistered packs that should not be on sale.
+        It is the same reference library the Vouch check matches against. Photos,
+        where shown, are NAFDAC's own images of the flagged packs. <strong>This page
+        is informational and is not affiliated with NAFDAC.</strong>
+      </p>
+      <p id="alerts-updated" class="alerts-updated" role="status"></p>
+    </div>
+  </header>
+
+  <main class="alerts-main">
+    <div class="alerts-toolbar">
+      <div class="alerts-filters" role="group" aria-label="Filter by category">
+        <button type="button" class="chip filter-chip selected" data-filter="all" aria-pressed="true">All</button>
+        <button type="button" class="chip filter-chip" data-filter="drug" aria-pressed="false">Medicines</button>
+        <button type="button" class="chip filter-chip" data-filter="food" aria-pressed="false">Food &amp; drink</button>
+        <button type="button" class="chip filter-chip" data-filter="cosmetic" aria-pressed="false">Cosmetics</button>
+        <button type="button" class="chip filter-chip" data-filter="device" aria-pressed="false">Devices</button>
+      </div>
+      <label class="alerts-search">
+        <span class="sr-only">Search flagged products</span>
+        <input id="alerts-search-input" type="search" placeholder="Search product, brand or alert number…" autocomplete="off">
+      </label>
+    </div>
+
+    <p id="alerts-count" class="alerts-count" role="status"></p>
+    <div id="alerts-list" class="alerts-list" aria-live="polite"></div>
+    <div id="alerts-empty" class="alerts-empty hidden">
+      <p>No flagged products match that filter. Clear the search or pick another category.</p>
+    </div>
+
+    <aside class="alerts-footnote">
+      <p>
+        <strong>How this list works.</strong> Entries are matched from NAFDAC's published
+        alerts; the photos are the official images from those alert pages. A pack that
+        looks like one of these is not automatically fake — compare it by hand, check the
+        registration number with the
+        <a href="/">Vouch check</a> or NAFDAC's own
+        <a href="https://registration.nafdac.gov.ng/" target="_blank" rel="noopener">official verifier</a>,
+        and report anything suspicious after your check.
+      </p>
+      <p id="alerts-error" class="alerts-error hidden" role="alert"></p>
+    </aside>
+  </main>
+
+  <script src="/alerts.js"></script>
+</body>
+</html>

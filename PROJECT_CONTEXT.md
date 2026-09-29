@@ -12,7 +12,7 @@ Data sources are NAFDAC's public Greenbook (https://greenbook.nafdac.gov.ng) for
 
 ```
 config.js            Shared runtime, database path, and vision model configuration
-server.js            Express app: /verify, /api/extract, /api/config, /api/health, static web/
+server.js            Express app: /verify, /api/extract, /api/alerts, /api/config, /api/health, static web/
 web/                 Vouch UI: index.html, styles.css, app.js (no framework, no build step)
 web/fakes/           Official NAFDAC photos of flagged packs, served offline
 .env.example         Non-secret environment template
@@ -116,6 +116,7 @@ Key gotchas learned the hard way:
 - **Asking the model for less produced better results.** When the prompt also requested a product name, the model returned wrong numbers (`B-102886`, `8-102886`) and garbage names (`"SOTL"`). With name extraction removed it reads the number correctly: `AB-102886`.
 - The regex only validates *shape*, not correctness. A wrong-but-well-formed number will pass and land on `not_found`. That's the intended safety net, not a silent bad verification.
 - `GET /api/config` reports whether vision is enabled so the UI can show a banner.
+- `GET /api/alerts` serves the whole known-fake library (parsed arrays, ordered by alert number) for the public register at **`/alerts.html`** — a standalone blog-style page with filters, search and NAFDAC reference photos. It lives in the SW shell cache; bump `CACHE` when touching `alerts.js`/`alerts.html`.
 
 ## NAPAMS handoff and local cache
 

@@ -27,6 +27,8 @@ const CACHE_PATH = path.join(os.tmpdir(), `vouch-smoke-cache-${process.pid}.db`)
 
 const staticChecks = [
   ['/', 'text/html'],
+  ['/alerts.html', 'text/html'],
+  ['/alerts.js', 'javascript'],
   ['/styles.css', 'text/css'],
   ['/app.js', 'javascript'],
   ['/manifest.webmanifest', 'manifest'],

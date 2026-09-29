@@ -732,6 +732,34 @@ app.get('/verify', (req, res) => {
   res.json(payload);
 });
 
+// Public listing of every product in the known-fake library. This backs the
+// standalone alerts page — a plain, referenceable register of the flagged
+// products the app matches against, with NAFDAC's own photos where they exist.
+app.get('/api/alerts', (req, res) => {
+  const rows = reportsDb.prepare(
+    `SELECT alert_number, product_name, nafdac_number, batches, hazard, category,
+            brand_name, aliases, appearance, source_url, photos_json
+     FROM known_fakes ORDER BY alert_number DESC`
+  ).all();
+  res.set('Cache-Control', 'no-cache');
+  res.json({
+    count: rows.length,
+    alerts: rows.map((row) => ({
+      alert_number: row.alert_number,
+      product_name: row.product_name,
+      nafdac_number: row.nafdac_number,
+      category: row.category,
+      brand_name: row.brand_name,
+      aliases: parseJsonArray(row.aliases),
+      batches: parseJsonArray(row.batches),
+      hazard: row.hazard,
+      appearance: row.appearance,
+      source_url: row.source_url,
+      photos: parseJsonArray(row.photos_json),
+    })),
+  });
+});
+
 app.get('/sw.js', (req, res) => {
   res.set('Cache-Control', 'no-cache');
   res.sendFile(path.join(WEB_DIR, 'sw.js'));

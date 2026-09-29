@@ -114,6 +114,20 @@ async function verify(page, nafdac, productName) {
     assert.ok(horizontalOverflow <= 1, `Mobile layout overflows by ${horizontalOverflow}px`);
     await page.screenshot({ path: path.join(OUT, 'vouch-mobile.png'), fullPage: true });
 
+    // The flagged-products register lists the known-fake library with photos.
+    await page.goto(`${BASE}/alerts.html`, { waitUntil: 'networkidle' });
+    await page.waitForSelector('.alert-entry', { timeout: 15000 });
+    const entryCount = await page.locator('.alert-entry').count();
+    assert.ok(entryCount >= 10, `alerts register should list the library, saw ${entryCount}`);
+    const photoCount = await page.locator('.alert-photos img').count();
+    assert.ok(photoCount >= 10, `reference photos should be listed, saw ${photoCount}`);
+    await page.click('.filter-chip[data-filter="food"]');
+    const foodCount = await page.locator('.alert-entry').count();
+    assert.ok(foodCount > 0 && foodCount < entryCount, 'category filter narrows the list');
+    await page.fill('#alerts-search-input', 'cerelac');
+    assert.equal(await page.locator('.alert-entry').count(), 1, 'search narrows to the matching entry');
+    await page.screenshot({ path: path.join(OUT, 'alerts-register.png'), fullPage: true });
+
     assert.deepEqual(browserErrors, []);
     console.log('Desktop and mobile browser checks passed');
   } finally {
