@@ -84,26 +84,33 @@ async function verify(page, nafdac, productName) {
 
     await page.goto(BASE, { waitUntil: 'networkidle' });
 
-    // The photo comes first, because the modal opens after the check and can
-    // offer to attach it.
-    await page.setInputFiles('#file-input', PHOTO);
+    // The photos come first, because the modal opens after the check and can
+    // offer to attach each one individually. Files are processed one at a
+    // time, so wait for both tiles rather than the read settling.
+    await page.setInputFiles('#file-input', [PHOTO, PHOTO]);
+    await page.waitForFunction(() => document.querySelectorAll('.photo-tile:not(.photo-tile-add)').length === 2, { timeout: 30000 });
     await waitForIdle(page);
+    assert.equal(await page.locator('.photo-tile:not(.photo-tile-add)').count(), 2, 'both uploads become tiles');
 
     await verify(page, 'RPT-UI-001', 'UI Report Tablets');
     assert.match(await page.getAttribute('#result .result', 'class'), /r-notfound/);
 
-    // The report prompt is now a modal, and it opens after every check.
+    // The report prompt is now a modal, and it opens after every check. It
+    // leads with the verdict strip so the shopper knows what they are
+    // reporting on, and the pack shot is pre-selected for attachment.
     const modal = page.locator('#report-modal');
     await modal.waitFor({ state: 'visible', timeout: 10000 });
     assert.equal(await page.locator('#report-form').count(), 1);
     assert.match(await page.locator('#report-modal-title').innerText(), /look different or damaged/i);
+    assert.match(await page.locator('.modal-verdict').innerText(), /Not found/i);
+    assert.match(await page.locator('.modal-verdict .result-badge').innerText(), /not found/i);
 
     await page.click('.issue-chips .chip:first-child');
     assert.equal(await page.locator('.issue-chips .chip.selected').count(), 1);
     assert.match(await page.locator('#report-note').inputValue(), /seal/i);
     await page.fill('#report-area', 'UI Test Area');
-    assert.equal(await page.isEnabled('#report-photo'), true);
-    await page.check('#report-photo');
+    assert.equal(await page.locator('#report-attach-tiles input').count(), 2);
+    assert.equal(await page.locator('#report-attach-tiles input:checked').count(), 1, 'pack shot pre-selected');
 
     const [reportResponse] = await Promise.all([
       page.waitForResponse((response) => response.url().includes('/report') && response.request().method() === 'POST'),
@@ -131,6 +138,14 @@ async function verify(page, nafdac, productName) {
     await page.keyboard.press('Escape');
     await modal.waitFor({ state: 'detached', timeout: 10000 });
     assert.ok(await page.locator('#result .result').count() > 0);
+
+    // A verified pack gets the blue registry-match badge in the modal too.
+    await verify(page, '10737/R1', 'hyoscine butylbromide injection bp 20mg/ml');
+    await modal.waitFor({ state: 'visible', timeout: 10000 });
+    assert.match(await page.locator('.modal-verdict').innerText(), /Registry match/i);
+    assert.match(await page.locator('.modal-verdict').innerText(), /Registered and active/i);
+    await page.click('#report-no');
+    await modal.waitFor({ state: 'detached', timeout: 10000 });
 
     for (const session of ['ui-extra-one', 'ui-extra-two']) {
       const extra = await fetch(`${BASE}/report`, {

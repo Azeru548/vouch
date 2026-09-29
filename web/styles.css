@@ -347,9 +347,9 @@ h1, h2, h3 {
 
 .privacy-note strong { color: var(--ink-soft); }
 
-/* ---------- photo ---------- */
+/* ---------- photo tiles ---------- */
 
-.preview-wrap,
+.photo-thumbs,
 .camera-stage {
   position: relative;
   overflow: hidden;
@@ -359,20 +359,9 @@ h1, h2, h3 {
   background: var(--paper-deep);
 }
 
-.preview-wrap { display: grid; justify-items: start; }
+.photo-thumbs { padding: 0.65rem; }
 
-.preview-wrap img,
-.camera-stage video {
-  display: block;
-  width: 100%;
-  max-height: 300px;
-  object-fit: contain;
-  background: var(--paper-deep);
-}
-
-.preview-wrap .btn { margin: 0.65rem; }
-
-.preview-wrap::after {
+.photo-thumbs.is-reading::after {
   content: "";
   position: absolute;
   top: 0;
@@ -380,13 +369,95 @@ h1, h2, h3 {
   left: 0;
   height: 4px;
   background: var(--ink);
-  opacity: 0;
+  opacity: 1;
   transform: translateX(-100%);
+  animation: scan 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-.preview-wrap.is-reading::after {
-  opacity: 1;
-  animation: scan 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+.photo-thumbs.is-reading { overflow: hidden; }
+
+.thumbs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.6rem;
+}
+
+.photo-tile {
+  position: relative;
+  margin: 0;
+}
+
+.photo-tile img {
+  display: block;
+  width: 100%;
+  height: 110px;
+  object-fit: cover;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.photo-tile figcaption {
+  margin-top: 0.3rem;
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.photo-remove {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.3rem;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(35, 33, 95, 0.85);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.photo-remove:hover { background: var(--danger); }
+
+.photo-tile-add {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 0.25rem;
+  height: 110px;
+  border: 2px dashed var(--line-strong);
+  border-radius: 8px;
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.photo-tile-add svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.photo-tile-add:hover {
+  border-color: var(--ink);
+  color: var(--ink-deep);
+}
+
+.photo-thumbs .btn { margin-top: 0.65rem; }
+
+.camera-stage video {
+  display: block;
+  width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+  background: var(--paper-deep);
 }
 
 .camera-actions { padding: 0.65rem; }
@@ -1022,18 +1093,103 @@ html.modal-open { overflow: hidden; }
   background: var(--ink);
 }
 
-.report-options {
+/* Result strip at the top of the report modal: reuses the result region's
+   r-* classes so badge colours stay defined in one place. */
+.modal-verdict {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
   align-items: center;
-  justify-content: space-between;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-small);
+  background: var(--paper-deep);
 }
 
-.report-check-hint {
+.modal-verdict-text {
+  color: var(--ink-deep);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.modal-verdict-note {
+  margin: 0.45rem 0 0;
+  color: var(--danger);
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+/* Photo attachment tiles in the report modal. */
+.report-attach {
+  margin-top: 0.9rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.report-attach-label {
+  margin: 0;
+  color: var(--ink-deep);
+  font-size: 0.84rem;
+  font-weight: 750;
+}
+
+.report-attach-label span {
   color: var(--muted);
   font-weight: 600;
 }
+
+.report-attach-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 0.6rem;
+}
+
+.report-attach-none {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.report-attach-tile {
+  position: relative;
+  display: grid;
+  gap: 0.25rem;
+  justify-items: start;
+  cursor: pointer;
+}
+
+.report-attach-tile input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.report-attach-tile img {
+  width: 100%;
+  height: 84px;
+  object-fit: cover;
+  border: 2px solid var(--line-strong);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.report-attach-tile input:checked + img {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px rgba(53, 49, 143, 0.25);
+}
+
+.report-attach-tile input:focus-visible + img {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.report-attach-tile span {
+  color: var(--ink-soft);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.report-attach .btn { justify-self: start; }
 
 .modal-actions {
   display: flex;
@@ -1113,21 +1269,6 @@ html.modal-open { overflow: hidden; }
 .report-fields textarea {
   min-height: 80px;
   resize: vertical;
-}
-
-.report-check {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  color: var(--ink-soft);
-  font-size: 0.8rem;
-  font-weight: 650;
-  cursor: pointer;
-}
-
-.report-check input {
-  width: 20px;
-  height: 20px;
 }
 
 .napams-fields input[readonly] {

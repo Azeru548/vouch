@@ -36,7 +36,7 @@
         <span class="step-number" aria-hidden="true">1</span>
         <div>
           <h2 id="scan-title">Start with a photo</h2>
-          <p>Capture the registration panel clearly, or enter the details yourself.</p>
+          <p>Capture the pack, then add a close-up of the registration area — up to 4 photos. Or enter the details yourself.</p>
         </div>
       </div>
 
@@ -47,19 +47,19 @@
         </button>
         <label class="btn btn-secondary" for="file-input">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14v5h14v-5"/></svg>
-          Upload image
+          Upload photos
         </label>
-        <input id="file-input" type="file" accept="image/*" hidden>
+        <input id="file-input" type="file" accept="image/*" multiple hidden>
       </div>
 
       <div class="privacy-note">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2M5 10h14v10H5V10Z"/></svg>
-        <p><strong>Your photo stays optional.</strong> When photo reading is enabled, the selected image is sent to the configured vision service to locate the registration number and describe how the pack looks, so it can be compared with known fakes.</p>
+        <p><strong>Your photos stay optional.</strong> When photo reading is enabled, the selected photos are sent to the configured vision service to locate the registration number across them and describe how the pack looks, so it can be compared with known fakes.</p>
       </div>
 
-      <div id="preview-wrap" class="preview-wrap hidden">
-        <img id="preview" alt="Selected product photo">
-        <button id="btn-clear-image" class="btn btn-ghost" type="button">Remove photo</button>
+      <div id="photo-thumbs" class="photo-thumbs hidden">
+        <div id="thumbs" class="thumbs"></div>
+        <button id="btn-clear-photos" class="btn btn-ghost" type="button">Remove all photos</button>
       </div>
       <div id="ocr-status" class="ocr-status hidden" role="status" aria-live="polite"></div>
 

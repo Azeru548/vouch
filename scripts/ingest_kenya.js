@@ -142,6 +142,10 @@ function normalizeProductName(name) {
 }
 
 function mapRow(row) {
+  // PPB's public listing has no product-type field, so `category` stays null
+  // for KE rows — the country of manufacture goes to origin_country instead.
+  // (It used to be stuffed into category, which made the column mean two
+  // different things depending on country.)
   return {
     nafdac: row.reg,
     product_name: normalizeProductName(row.name),
@@ -150,7 +154,8 @@ function mapRow(row) {
     route: null,
     applicant: row.applicant || null,
     manufacturer_id: null,
-    category: row.origin || null,
+    category: null,
+    origin_country: row.origin || null,
     approval_date: row.approval_date || null,
     expiry_date: row.expiry_date || null,
     status: 'Active',
@@ -163,12 +168,14 @@ function mapRow(row) {
   const startedAt = Date.now();
   const db = new DatabaseSync(databasePath);
   ensureCountryColumn(db);
+  const columns = new Set(db.prepare('PRAGMA table_info(products)').all().map((column) => column.name));
+  if (!columns.has('origin_country')) db.exec('ALTER TABLE products ADD COLUMN origin_country TEXT');
   db.prepare('DELETE FROM products WHERE country = ?').run('KE');
   const insert = db.prepare(`
     INSERT INTO products (nafdac, product_name, strength, form, route, applicant,
-                          manufacturer_id, category, approval_date, expiry_date, status,
+                          manufacturer_id, category, origin_country, approval_date, expiry_date, status,
                           manufacturer, country)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   let session = await bootstrap();
@@ -220,8 +227,8 @@ function mapRow(row) {
       seenRows.add(dedupeKey);
       insert.run(
         product.nafdac, product.product_name, product.strength, product.form, product.route,
-        product.applicant, product.manufacturer_id, product.category, product.approval_date,
-        product.expiry_date, product.status, product.manufacturer, product.country,
+        product.applicant, product.manufacturer_id, product.category, product.origin_country,
+        product.approval_date, product.expiry_date, product.status, product.manufacturer, product.country,
       );
     }
     db.exec('COMMIT');

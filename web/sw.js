@@ -1,4 +1,4 @@
-const CACHE = 'vouch-shell-v6';
+const CACHE = 'vouch-shell-v7';
 const SHELL = [
   '/',
   '/styles.css',

@@ -192,6 +192,39 @@ function checkReportsMigration() {
     assert.equal(nigeria.status, 'not_found');
     assert.equal(nigeria.community_flag, undefined);
 
+    // Photos must arrive pre-downscaled: the 900 KB cap is the retention
+    // policy pushed to the client.
+    const hugePhoto = `data:image/jpeg;base64,${'A'.repeat(1400000)}`;
+    const fatPhoto = await postReport({
+      ...report,
+      nafdac_number: 'RPT-KE-003',
+      location_area: 'Photo Test Area',
+      note: 'Oversized photo test',
+      photo: hugePhoto,
+      session_id: crypto.randomUUID(),
+      scan_result: { status: 'not_found', country: 'KE' },
+    });
+    assert.equal(fatPhoto.status, 400);
+    assert.equal(fatPhoto.body.error, 'invalid_photo');
+
+    // Coordinates are stored rounded to ~110 m, not as precise GPS traces.
+    const located = await postReport({
+      ...report,
+      nafdac_number: 'RPT-KE-003',
+      location_area: 'GPS Test Area',
+      note: 'Coordinate rounding test',
+      latitude: -1.263481723,
+      longitude: 36.80284519,
+      session_id: crypto.randomUUID(),
+      scan_result: { status: 'not_found', country: 'KE' },
+    });
+    assert.equal(located.status, 201);
+    const verifyDb = new DatabaseSync(MAIN_PATH, { readOnly: true });
+    const gpsRow = verifyDb.prepare('SELECT latitude, longitude FROM reports WHERE id = ?').get(located.body.id);
+    verifyDb.close();
+    assert.equal(gpsRow.latitude, -1.263);
+    assert.equal(gpsRow.longitude, 36.803);
+
     const limiter = crypto.randomUUID();
     for (let index = 1; index <= 5; index++) {
       const created = await postReport({ ...report, nafdac_number: 'RPT-KE-002', location_area: `Limiter ${index}`, note: `Rate test ${index}`, session_id: limiter, scan_result: { status: 'not_found', country: 'KE' } });

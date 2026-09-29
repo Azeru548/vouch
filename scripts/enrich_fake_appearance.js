@@ -34,7 +34,7 @@ function readPhotoDataUrl(relPath) {
   return `data:${mime};base64,${fs.readFileSync(file).toString('base64')}`;
 }
 
-async function describe(dataUrl) {
+async function describeOnce(dataUrl) {
   const upstream = await fetch(GROQ_URL, {
     method: 'POST',
     headers: { Authorization: `Bearer ${GROQ_KEY}`, 'Content-Type': 'application/json' },
@@ -56,7 +56,14 @@ async function describe(dataUrl) {
     }),
   });
   const body = await upstream.json();
-  if (!upstream.ok) throw new Error(body?.error?.message || `vision upstream error (${upstream.status})`);
+  if (!upstream.ok) {
+    const error = new Error(body?.error?.message || `vision upstream error (${upstream.status})`);
+    error.rateLimited = upstream.status === 429 || /rate limit/i.test(body?.error?.message || '');
+    // Groq states the cooldown in its message: "Please try again in 16.6s".
+    const hint = (body?.error?.message || '').match(/try again in ([\d.]+)s/i);
+    error.retryAfterMs = hint ? Math.ceil(Number(hint[1]) * 1000) + 1000 : null;
+    throw error;
+  }
   const raw = body?.choices?.[0]?.message?.content ?? '';
   let parsed = null;
   try {
@@ -65,6 +72,25 @@ async function describe(dataUrl) {
     parsed = null;
   }
   return cleanAppearanceFields(parsed);
+}
+
+// The free on-demand tier budgets ~7k input tokens per minute and one pack
+// photo is a large fraction of that, so 429s are normal here, not errors.
+// Wait out the cooldown Groq reports and retry a few times before giving up.
+const MAX_ATTEMPTS = 5;
+
+async function describe(dataUrl) {
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      return await describeOnce(dataUrl);
+    } catch (error) {
+      const exhausted = attempt === MAX_ATTEMPTS;
+      if (!error.rateLimited || exhausted) throw error;
+      const wait = error.retryAfterMs ?? 20000;
+      console.error(`  rate limited; waiting ${Math.round(wait / 1000)}s before attempt ${attempt + 1}`);
+      await new Promise((resolve) => setTimeout(resolve, wait));
+    }
+  }
 }
 
 (async () => {
@@ -101,7 +127,9 @@ async function describe(dataUrl) {
     } catch (error) {
       report.push({ alert: row.alert_number, status: `failed: ${error.message}` });
     }
-    await new Promise((r) => setTimeout(r, 500));
+    // Space calls out even on success: the limit is per minute, and one big
+    // photo can nearly fill it on its own.
+    await new Promise((r) => setTimeout(r, 6000));
   }
 
   const totals = db.prepare('SELECT COUNT(*) AS total, SUM(appearance IS NOT NULL) AS with_appearance FROM known_fakes').get();

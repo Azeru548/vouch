@@ -46,6 +46,7 @@ Requires Node 24+ (uses built-in `node:sqlite`, no native modules). Runtime deps
 | `nafdac` | registration number, **indexed but NOT unique** (duplicates exist in source data) |
 | `product_name` | normalized: `#`/`*`/`$` stripped, lowercased, whitespace collapsed |
 | `strength`, `form`, `route`, `applicant`, `manufacturer`, `category` | text |
+| `origin_country` | Kenya only: country of manufacture from the PPB listing. **Never use `category` for this on KE rows** — it used to hold the origin country, which made the column mean two things; `migrate:origin` moved it out. NG rows keep `category` = Greenbook product type. |
 | `approval_date`, `expiry_date` | ISO-ish date strings, some have `-000001-11-30` placeholder sentinels |
 | `status` | `Active` or `Inactive` |
 | `manufacturer_id` | FK-ish id, kept even though name is denormalized in `manufacturer` |
@@ -57,6 +58,8 @@ Also a `manufacturers(id, name)` reference table (1,420 rows) scraped from `/man
 `napams_cache` is a separate writable local SQLite database created at `data/napams_cache.db`. It stores only records the user manually confirms after opening the official NAPAMS verifier: `nafdac`, `product_name`, optional manufacturer/applicant/category/notes, status, `source`, and `checked_at`. It is not a scraped mirror of NAPAMS.
 
 `reports` lives in the main `data/nafdac_products.db`: `id, nafdac_number (nullable), product_name, country, location_area, note, photo_url, scan_result, latitude, longitude, session_id, created_at, is_seed`. Rows with `is_seed = 1` are DEMO/SEED data only. `POST /report` rate-limits to 5 reports/hour per session and **requires `product_name`, not a registration number** — the packs most worth reporting are the unregistered ones. `ensureReportsTable()` rebuilds the table once for snapshots where `nafdac_number` was still `NOT NULL` (SQLite cannot relax a constraint in place); `test:reports` covers that migration.
+
+Retention is deliberate: the client downscales photos before sending and the server caps attachments at **900 KB**; coordinates are stored **rounded to 3 decimals** (~110 m) because the report is about a market, not a doorway; and a sweep at server start clears `photo_url` from real reports older than **180 days** (notes and rough locations stay — they are the safety signal).
 
 `/verify` adds `community_flag {flagged, report_count, reported_on, recent_locations}` when ≥3 reports in 30 days agree on the same pack. The key is the registration number when the check had one, otherwise the product name, compared with `fuzzball.token_set_ratio` at the same 85 bar used elsewhere — the name is only a grouping heuristic and never feeds a verdict. `reported_on` says which key was used. `GET /api/reports` exposes non-sensitive report data (no session IDs or photos). The report map and the standalone alerts feed page were both removed; hazard intel now surfaces only as the banner on check results (a proper blog with images plus push notifications is planned next).
 
@@ -101,7 +104,7 @@ Response: `{status, matched|closest_match, score, [reason], [message]}`. Develop
 
 ## Vision extraction
 
-`POST /api/extract` proxies to Groq (`qwen/qwen3.8-27b`) with the image as base64. The API key is read from the `GROQ_API_KEY` env var server-side; the browser never sees it.
+`POST /api/extract` and `POST /api/describe` accept **1–4 images** — either `image` (string, legacy) or `images` (array). The key is read from the `GROQ_API_KEY` env var server-side; the browser never sees it. Both validate every entry as a `data:image/...` string and reject >4 with `bad_images`, so one request cannot exhaust the model's context window. The extract prompt now asks for the number "across ALL of the photos" so a pack shot plus a registration-panel close-up work together.
 
 - Extracts **only** `nafdac_number` (+ `found`).
 - Validates against `/^[A-Z0-9]{1,3}-\d{3,6}$/i` server-side, mirrored client-side.
@@ -135,7 +138,7 @@ Note: **`AB-102886` is not in the database** (`%102886%` returns 0 rows), so the
 npm.cmd test                         # 12 asserted /verify cases + smoke/security/cache checks
 npm.cmd run test:e2e                 # Playwright desktop/mobile flow, NAPAMS handoff, all verdicts
 npm.cmd run test:reports             # report API, community flag, rate limit (temp DB)
-npm.cmd run test:report-ui           # report modal flow, number-optional reporting, threshold flag (temp DB copy)
+npm.cmd run test:report-ui           # report modal (verdict strip, photo attach), multi-upload, threshold flag (temp DB copy)
 npm.cmd run seed:reports             # 10 DEMO seed reports (5 NG, 5 KE); modifies the configured DB
 npm.cmd run test:extract             # sends each assets/ image through /api/extract
 npm.cmd run test:hazards             # hazard matching + banner ordering (temp DB)
@@ -159,6 +162,7 @@ Useful reg numbers for manual testing:
 
 ## Data quirks worth knowing
 
+- **KE rows had origin country in `category`** (India 1,851, Kenya 357, …). Fixed by `npm run migrate:origin`, which copies it to `origin_country` and nulls KE `category`. `ingest_kenya.js` now writes `origin_country` directly.
 - **124 rows** had leading whitespace in `nafdac` (e.g. `" 04-6868"`). Fixed once; handler also TRIMs input. Don't reintroduce.
 - **3 rows have an empty/null reg number.**
 - Reg numbers are **not unique**. `A4-1205` covers two genuinely different products — almost certainly a NAFDAC data-entry error, not a duplicate.
@@ -177,8 +181,10 @@ Not done / known gaps:
 - Camera (`getUserMedia`) needs HTTPS or localhost and will not work over a LAN IP.
 - Groq uses a 25-second timeout but no retry/backoff or circuit breaker.
 - The SQLite registry is a point-in-time snapshot with no scheduled refresh.
-- The known-fake library has **17 rows** and only 10 of them carry photos, so the drug entries have no `appearance` text until `enrich:fake-appearance` is run. Appearance matching is inert for any row without it.
-- Food and cosmetic library entries have no photos at all (`photos: []`) — the alert pages carry images we have not downloaded. Leads for them render as text with no comparison thumbnail.
+- The known-fake library has **17 rows**; 10 carry official NAFDAC photos and **15 of 17 carry `appearance` descriptors** (the vision enrichment ran; two photo-less amoxicillin alerts have nothing to describe). Groq's free tier is ~7k input tokens/min, so `enrich:fake-appearance` now waits out 429 cooldowns (up to 5 attempts per photo) and spaces calls 6 s apart.
+- **Multi-photo flow:** up to 4 photos per check, client and server (`MAX_PHOTOS` / `MAX_VISION_IMAGES` must stay in sync). Files are ingested one at a time and each triggers a re-read; a `readAttempt` counter stops stale responses from overwriting the number field. Photo 1 is labelled pack shot, photo 2 number area. Only the **first** attached photo goes to `/report` (schema has one `photo_url`).
+- **Report modal** leads with a verdict strip reusing the result region's `r-*` badge classes (badge text renders UPPERCASE via the global `text-transform` — assert case-insensitively). It also has a real attach UI: one tile per photo, pack shot pre-checked. The dialog requires `<h2 id="report-modal-title">` — it is the `aria-labelledby` target; don't remove it again.
+- Three library rows have no photo because their alerts publish none (`018/2026` Cerelac, `34/2025`, `35/2025`). Their written descriptors are the only reference; the UI says plainly that no photo exists.
 - `appearance` matching compares free text against free text, so it is low-precision by nature. It is a lead generator, not an identifier; there is no image-similarity matching.
 
 ## Security findings (observed during recon, not yet reported)

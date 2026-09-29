@@ -64,22 +64,54 @@ app.use((req, res, next) => {
 });
 app.use(express.json({ limit: '12mb' }));
 
+// Vision photo sets: every image must be a data URL, and the set is bounded
+// so one request cannot exhaust the vision service's context window.
+const MAX_VISION_IMAGES = 4;
+
+function collectImages(body) {
+  const images = [];
+  for (const candidate of [body?.images, body?.image]) {
+    if (Array.isArray(candidate)) images.push(...candidate);
+    else if (typeof candidate === 'string' && candidate) images.push(candidate);
+  }
+  return images;
+}
+
+function validateImages(images) {
+  if (images.length === 0 || images.length > MAX_VISION_IMAGES) {
+    return { error: 'bad_images', detail: `Expected 1 to ${MAX_VISION_IMAGES} images.` };
+  }
+  for (const image of images) {
+    if (typeof image !== 'string' || !image.startsWith('data:image')) {
+      return { error: 'bad_images', detail: 'Expected data:image/... base64 strings.' };
+    }
+  }
+  return null;
+}
+
+function imageContent(images) {
+  return images.map((image) => ({ type: 'image_url', image_url: { url: image } }));
+}
+
 app.post('/api/extract', async (req, res) => {
   if (!GROQ_KEY) {
     return res.status(503).json({ error: 'vision_not_configured', detail: 'Set GROQ_API_KEY on the server to enable photo extraction.' });
   }
-  const { image } = req.body || {};
-  if (!image || typeof image !== 'string' || !image.startsWith('data:image')) {
-    return res.status(400).json({ error: 'bad_image', detail: 'Expected a data:image/... base64 string.' });
+  const images = collectImages(req.body || {});
+  const invalid = validateImages(images);
+  if (invalid) {
+    return res.status(400).json(invalid);
   }
 
   const prompt =
-    'Find the NAFDAC registration number on this product packaging photo. ' +
+    'These are photos of the SAME product packaging (the pack itself, then close-ups such as the registration panel). ' +
+    'Find the NAFDAC registration number across ALL of the photos. ' +
     'Return ONLY a JSON object with exactly these keys: ' +
     '{"nafdac_number": string|null, "found": boolean}. ' +
     'Rules: ' +
-    '- nafdac_number is REQUIRED. Set found=false and nafdac_number to null only if no NAFDAC number is visible at all. ' +
+    '- nafdac_number is REQUIRED. Set found=false and nafdac_number to null only if no NAFDAC number is visible in any photo. ' +
     '- Copy the number exactly as printed, including the hyphen and any leading letters. ' +
+    '- Prefer the sharpest, most legible rendering when the same number appears more than once. ' +
     '- Do not return a product name.';
 
   try {
@@ -95,10 +127,7 @@ app.post('/api/extract', async (req, res) => {
         messages: [
           {
             role: 'user',
-            content: [
-              { type: 'text', text: prompt },
-              { type: 'image_url', image_url: { url: image } },
-            ],
+            content: [{ type: 'text', text: prompt }, ...imageContent(images)],
           },
         ],
       }),
@@ -153,9 +182,10 @@ app.post('/api/describe', async (req, res) => {
   if (!GROQ_KEY) {
     return res.status(503).json({ error: 'vision_not_configured', detail: 'Set GROQ_API_KEY on the server to enable pack description.' });
   }
-  const { image } = req.body || {};
-  if (!image || typeof image !== 'string' || !image.startsWith('data:image')) {
-    return res.status(400).json({ error: 'bad_image', detail: 'Expected a data:image/... base64 string.' });
+  const images = collectImages(req.body || {});
+  const invalid = validateImages(images);
+  if (invalid) {
+    return res.status(400).json(invalid);
   }
 
   try {
@@ -171,10 +201,7 @@ app.post('/api/describe', async (req, res) => {
         messages: [
           {
             role: 'user',
-            content: [
-              { type: 'text', text: APPEARANCE_PROMPT },
-              { type: 'image_url', image_url: { url: image } },
-            ],
+            content: [{ type: 'text', text: APPEARANCE_PROMPT }, ...imageContent(images)],
           },
         ],
       }),
@@ -217,6 +244,17 @@ const REPORT_RATE_LIMIT = 5;
 const REPORT_RATE_WINDOW_MS = 60 * 60 * 1000;
 const COMMUNITY_FLAG_THRESHOLD = 3;
 const COMMUNITY_FLAG_WINDOW_DAYS = 30;
+// Reports are community safety signals, not a photo archive. A downscaled
+// attachment is enough to show "this is the pack I saw"; keeping full-size
+// imagery indefinitely turns the reports table into a surveillance liability.
+const REPORT_PHOTO_MAX_BYTES = 900000;
+const REPORT_RETENTION_DAYS = 180;
+const GEO_PRECISION = 3; // ~110 m at the equator; a market, not a doorway
+
+function roundCoordinate(value) {
+  const factor = 10 ** GEO_PRECISION;
+  return Math.round(Number(value) * factor) / factor;
+}
 
 function isPlainObject(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -332,9 +370,13 @@ app.post('/report', (req, res) => {
   if (lat !== null && (lat < -90 || lat > 90 || lng < -180 || lng > 180)) {
     return res.status(400).json({ error: 'invalid_coordinates' });
   }
+  // Store coordinates rounded: the report is about a market or shop, and
+  // precise GPS traces are not ours to keep.
+  const roundedLat = lat === null ? null : roundCoordinate(lat);
+  const roundedLng = lng === null ? null : roundCoordinate(lng);
   if (photo !== undefined && photo !== null && photo !== '') {
-    if (typeof photo !== 'string' || !photo.startsWith('data:image/') || photo.length > 6000000) {
-      return res.status(400).json({ error: 'invalid_photo' });
+    if (typeof photo !== 'string' || !photo.startsWith('data:image/') || photo.length > REPORT_PHOTO_MAX_BYTES) {
+      return res.status(400).json({ error: 'invalid_photo', detail: 'Photo attachments must stay under 900 KB — the app downscales before sending.' });
     }
   }
   let scanResultText;
@@ -359,9 +401,23 @@ app.post('/report', (req, res) => {
   const info = reportsDb.prepare(`
     INSERT INTO reports (nafdac_number, product_name, country, location_area, note, photo_url, scan_result, latitude, longitude, session_id, created_at, is_seed)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
-  `).run(nafdacNumber || null, productName, country, locationArea, note, photo || null, scanResultText, lat, lng, sessionId, createdAt);
+  `).run(nafdacNumber || null, productName, country, locationArea, note, photo || null, scanResultText, roundedLat, roundedLng, sessionId, createdAt);
   res.status(201).json({ ok: true, id: Number(info.lastInsertRowid), created_at: createdAt });
 });
+
+// Retention sweep: report notes and rough locations stay (they are the safety
+// signal), but photo attachments are cleared after RETENTION_DAYS. Runs once
+// per server start; cheap enough not to need a timer.
+function sweepExpiredReportPhotos() {
+  const cutoff = new Date(Date.now() - REPORT_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const result = reportsDb.prepare(
+    'UPDATE reports SET photo_url = NULL WHERE photo_url IS NOT NULL AND created_at < ? AND is_seed = 0'
+  ).run(cutoff);
+  if (result.changes > 0) {
+    console.log(`report retention: cleared ${result.changes} photo attachment(s) older than ${REPORT_RETENTION_DAYS} days`);
+  }
+}
+sweepExpiredReportPhotos();
 
 app.get('/api/reports', (req, res) => {
   const country = String(req.query.country || 'ALL').trim().toUpperCase();

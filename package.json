@@ -9,6 +9,7 @@
     "ingest": "node scripts/ingest.js",
     "ingest:kenya": "node scripts/ingest_kenya.js",
     "migrate:country": "node scripts/migrate_country.js",
+    "migrate:origin": "node scripts/migrate_origin_country.js",
     "seed:reports": "node scripts/seed_reports.js",
     "seed:hazards": "node scripts/seed_hazards.js",
     "seed:fakes": "node scripts/seed_fakes.js",

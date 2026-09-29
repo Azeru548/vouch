@@ -3,9 +3,9 @@ const $ = (selector) => document.querySelector(selector);
 const els = {
   cameraBtn: $('#btn-camera'),
   fileInput: $('#file-input'),
-  clearBtn: $('#btn-clear-image'),
-  previewWrap: $('#preview-wrap'),
-  preview: $('#preview'),
+  thumbsWrap: $('#photo-thumbs'),
+  thumbs: $('#thumbs'),
+  clearAllBtn: $('#btn-clear-photos'),
   ocrStatus: $('#ocr-status'),
   visionBanner: $('#vision-banner'),
   form: $('#verify-form'),
@@ -22,6 +22,10 @@ const els = {
 const NAFDAC_RE = /^[A-Z0-9]{1,3}-\d{3,6}$/i;
 const PPB_RE = /^[A-Z0-9][A-Z0-9/.-]{2,31}$/i;
 
+// Photo sets are bounded so one request cannot exhaust the vision service's
+// context window — the server enforces the same limit.
+const MAX_PHOTOS = 4;
+
 function sessionId() {
   try {
     const stored = window.localStorage.getItem('vouch-session-id');
@@ -36,17 +40,25 @@ function sessionId() {
 
 let visionEnabled = false;
 let activeCamera = null;
-// Appearance descriptor for the current photo, when the vision service produced
-// one. Sent to /verify so a pack with no registration number can still be
-// compared against the known-fake library.
+// The photos for the pack currently being checked. The first photo added is
+// the pack shot; everything after it is treated as a detail shot (typically
+// the registration panel). Both are used by the vision pipeline, and the
+// report modal offers each one individually as an attachment.
+let photos = [];
+// Appearance descriptor for the current photo set, when the vision service
+// produced one. Sent to /verify so a pack with no registration number can
+// still be compared against the known-fake library.
 let packDescriptor = null;
+// Increments on every new read so a slow response for an older photo set
+// never overwrites the number fields for the current one.
+let readAttempt = 0;
 
 fetch('/api/config')
   .then((response) => response.json())
   .then((config) => {
     visionEnabled = config.vision_enabled;
     if (!visionEnabled) {
-      els.visionBanner.textContent = 'Photo reading is not configured. You can still attach a photo and type the details manually.';
+      els.visionBanner.textContent = 'Photo reading is not configured. You can still attach photos and type the details manually.';
       els.visionBanner.classList.remove('hidden');
     }
   })
@@ -73,7 +85,7 @@ els.cameraBtn.addEventListener('click', async () => {
     const shutter = document.createElement('button');
     shutter.className = 'btn btn-primary';
     shutter.type = 'button';
-    shutter.textContent = 'Capture photo';
+    shutter.textContent = photos.length === 0 ? 'Capture pack photo' : 'Add another photo';
 
     const cancel = document.createElement('button');
     cancel.className = 'btn btn-ghost';
@@ -82,7 +94,7 @@ els.cameraBtn.addEventListener('click', async () => {
 
     actions.append(shutter, cancel);
     stage.append(video, actions);
-    els.previewWrap.before(stage);
+    els.thumbsWrap.before(stage);
     activeCamera = { stage, track };
     cancel.focus();
 
@@ -100,7 +112,7 @@ els.cameraBtn.addEventListener('click', async () => {
       canvas.height = video.videoHeight || 720;
       canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
       cleanup();
-      handleImage(canvas.toDataURL('image/jpeg', 0.9));
+      ingestDataUrl(canvas.toDataURL('image/jpeg', 0.9));
     });
   } catch (error) {
     const reason = error?.name === 'NotAllowedError' ? 'camera permission was denied' : 'the camera could not be opened';
@@ -109,33 +121,46 @@ els.cameraBtn.addEventListener('click', async () => {
   }
 });
 
-els.fileInput.addEventListener('change', () => {
-  const file = els.fileInput.files?.[0];
-  if (!file) return;
-  if (!file.type.startsWith('image/')) {
-    setOcrStatus('Choose an image file such as JPG, PNG, or HEIC.', true);
-    els.fileInput.value = '';
+async function readFilesAsDataUrls(fileList) {
+  const files = [...fileList].filter((file) => file.type.startsWith('image/'));
+  if (files.length === 0) {
+    setOcrStatus('Choose image files such as JPG, PNG, or HEIC.', true);
     return;
   }
-  const reader = new FileReader();
-  reader.onload = () => handleImage(reader.result);
-  reader.onerror = () => setOcrStatus('That image could not be read. Try another file.', true);
-  reader.readAsDataURL(file);
+  for (const file of files) {
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error('read_failed'));
+      reader.readAsDataURL(file);
+    }).catch(() => null);
+    if (!dataUrl) {
+      setOcrStatus('One of those images could not be read. The others were kept.', true);
+      continue;
+    }
+    await ingestDataUrl(dataUrl);
+  }
+}
+
+els.fileInput.addEventListener('change', async () => {
+  if (!els.fileInput.files?.length) return;
+  await readFilesAsDataUrls(els.fileInput.files);
+  els.fileInput.value = '';
 });
 
-els.clearBtn.addEventListener('click', clearImage);
+els.clearAllBtn.addEventListener('click', clearPhotos);
 
-function clearImage() {
+function clearPhotos() {
   if (activeCamera) {
     activeCamera.track.stop();
     activeCamera.stage.remove();
     activeCamera = null;
   }
   els.fileInput.value = '';
+  readAttempt += 1;
+  photos = [];
   packDescriptor = null;
-  els.preview.removeAttribute('src');
-  els.previewWrap.classList.add('hidden');
-  els.previewWrap.classList.remove('is-reading');
+  renderThumbs();
   els.ocrStatus.classList.add('hidden');
   els.cameraBtn.focus();
 }
@@ -160,51 +185,100 @@ async function optimizeImage(dataUrl) {
   return canvas.toDataURL('image/jpeg', 0.82);
 }
 
-async function handleImage(dataUrl) {
-  setOcrStatus('<span class="spinner spinner-dark"></span>Preparing photo…');
-  els.previewWrap.classList.remove('hidden');
-  els.previewWrap.classList.add('is-reading');
+function photoKind(index) {
+  if (index === 0) return 'pack';
+  if (index === 1) return 'number';
+  return 'extra';
+}
 
-  let optimizedImage;
+function photoLabel(kind) {
+  if (kind === 'pack') return 'Pack shot';
+  if (kind === 'number') return 'Number area';
+  return 'Extra photo';
+}
+
+async function ingestDataUrl(dataUrl) {
+  if (photos.length >= MAX_PHOTOS) {
+    setOcrStatus(`Up to ${MAX_PHOTOS} photos per check. Remove one to add another.`, true);
+    return;
+  }
+  let optimized;
   try {
-    optimizedImage = await optimizeImage(dataUrl);
+    optimized = await optimizeImage(dataUrl);
   } catch {
-    els.previewWrap.classList.remove('is-reading');
     setOcrStatus('That image could not be prepared. Try another file.', true);
     return;
   }
+  photos.push({ dataUrl: optimized, kind: photoKind(photos.length), source: 'photo' });
+  renderThumbs();
+  await runPackRead();
+}
 
-  els.preview.src = optimizedImage;
-  // The report modal opens after the check, so this only matters if one is
-  // somehow still on screen when a new photo lands.
-  const reportPhoto = document.getElementById('report-photo');
-  if (reportPhoto) {
-    reportPhoto.disabled = false;
-    const hint = reportPhoto.closest('.report-check')?.querySelector('.report-check-hint');
-    if (hint) hint.textContent = 'optional';
+function renderThumbs() {
+  els.thumbs.innerHTML = photos.map((photo, index) => `
+    <figure class="photo-tile" data-photo-index="${index}">
+      <img src="${escapeHtml(photo.dataUrl)}" alt="${escapeHtml(photoLabel(photo.kind))}">
+      <figcaption>${escapeHtml(photoLabel(photo.kind))}</figcaption>
+      <button type="button" class="photo-remove" data-photo-index="${index}" aria-label="Remove ${escapeHtml(photoLabel(photo.kind)).toLowerCase()}">×</button>
+    </figure>`).join('');
+
+  const canAddMore = photos.length < MAX_PHOTOS;
+  const addTile = canAddMore
+    ? `<label class="photo-tile photo-tile-add" for="file-input" title="Add another photo">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        <span>Add photo</span>
+      </label>`
+    : '';
+
+  els.thumbs.insertAdjacentHTML('beforeend', addTile);
+  els.thumbsWrap.classList.toggle('hidden', photos.length === 0);
+
+  els.thumbs.querySelectorAll('.photo-remove').forEach((button) => {
+    button.addEventListener('click', () => removePhoto(Number(button.dataset.photoIndex)));
+  });
+}
+
+function removePhoto(index) {
+  photos.splice(index, 1);
+  photos = photos.map((photo, position) => ({ ...photo, kind: photoKind(position) }));
+  readAttempt += 1;
+  if (photos.length === 0) {
+    clearPhotos();
+    return;
   }
+  renderThumbs();
+  runPackRead();
+}
+
+// One read over the whole photo set: the number is extracted across all of
+// the shots (pack overview plus registration-panel close-ups), and the
+// appearance description runs alongside it. A description is a bonus, never a
+// requirement: if it fails, the registry check still goes ahead.
+async function runPackRead() {
+  const attempt = ++readAttempt;
+  const imageList = photos.map((photo) => photo.dataUrl);
+  if (imageList.length === 0) return;
 
   if (!visionEnabled) {
     packDescriptor = null;
-    els.previewWrap.classList.remove('is-reading');
-    setOcrStatus('Photo attached. Type the NAFDAC number below to check it.', true);
+    setOcrStatus(`${imageList.length > 1 ? 'Photos attached' : 'Photo attached'}. Type the NAFDAC number below to check it.`, true);
     els.nafdac.focus();
     return;
   }
 
-  // Runs alongside the number read. A description is a bonus, never a
-  // requirement: if it fails, the registry check still goes ahead.
-  describePack(optimizedImage);
-
-  setOcrStatus('<span class="spinner spinner-dark"></span>Reading the NAFDAC number…');
+  setOcrStatus(`<span class="spinner spinner-dark"></span>Reading your ${imageList.length > 1 ? 'photos' : 'photo'}…`);
+  els.thumbsWrap.classList.add('is-reading');
+  describePack(imageList, attempt);
 
   try {
     const response = await fetch('/api/extract', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image: optimizedImage }),
+      body: JSON.stringify({ images: imageList }),
     });
     const result = await response.json();
+    if (attempt !== readAttempt) return;
+    els.thumbsWrap.classList.remove('is-reading');
 
     if (!response.ok) {
       setOcrStatus(
@@ -219,7 +293,7 @@ async function handleImage(dataUrl) {
 
     if (result.usable) {
       els.nafdac.value = result.nafdac_number;
-      setOcrStatus(`Read NAFDAC number “${result.nafdac_number}”. Check it, then enter the product name.`);
+      setOcrStatus(`Read NAFDAC number “${result.nafdac_number}”${imageList.length > 1 ? ' from your photos' : ''}. Check it, then enter the product name.`);
       els.nafdac.focus();
       els.nafdac.select();
       return;
@@ -229,28 +303,29 @@ async function handleImage(dataUrl) {
     if (result.nafdac_number && !result.format_valid) {
       setOcrStatus(`Read “${result.nafdac_number}”, but its format is not valid. Correct it below.`, true);
     } else {
-      setOcrStatus('No clear NAFDAC number was found. Enter it below.', true);
+      setOcrStatus('No clear NAFDAC number was found in your photos. Enter it below.', true);
     }
     els.confirmHint.textContent = 'Correct the number if needed, then enter the exact product name.';
     els.nafdac.focus();
   } catch {
+    if (attempt !== readAttempt) return;
+    els.thumbsWrap.classList.remove('is-reading');
     setOcrStatus('Photo reading could not be reached. Type the NAFDAC number below.', true);
     els.nafdac.focus();
-  } finally {
-    els.previewWrap.classList.remove('is-reading');
   }
 }
 
-async function describePack(dataUrl) {
+async function describePack(imageList, attempt) {
   packDescriptor = null;
   try {
     const response = await fetch('/api/describe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image: dataUrl }),
+      body: JSON.stringify({ images: imageList }),
     });
-    if (!response.ok) return;
+    if (!response.ok || attempt !== readAttempt) return;
     const result = await response.json();
+    if (attempt !== readAttempt) return;
     packDescriptor = typeof result.descriptor === 'string' && result.descriptor ? result.descriptor : null;
   } catch {}
 }
@@ -274,7 +349,7 @@ async function submitVerify() {
 
   if (!els.form.reportValidity()) return;
   // The registration number is optional. With it we check the registry; without
-  // it we only have the name and photo to compare against known fakes.
+  // it we only have the name and photos to compare against known fakes.
   if (nafdac) {
     const validNumber = country === 'KE' ? PPB_RE.test(nafdac) : NAFDAC_RE.test(nafdac);
     if (!validNumber) {
@@ -293,7 +368,7 @@ async function submitVerify() {
 
   setResult(nafdac
     ? '<div class="result r-loading"><div class="result-head"><span class="spinner"></span><h2>Checking the registry…</h2></div><p class="result-message">Comparing the product details with the local NAFDAC snapshot.</p></div>'
-    : '<div class="result r-loading"><div class="result-head"><span class="spinner"></span><h2>Checking known fakes…</h2></div><p class="result-message">No registration number was entered, so this compares the name and photo with our library of flagged products.</p></div>');
+    : '<div class="result r-loading"><div class="result-head"><span class="spinner"></span><h2>Checking known fakes…</h2></div><p class="result-message">No registration number was entered, so this compares the name and photos with our library of flagged products.</p></div>');
   els.verifyButton.disabled = true;
   els.verifyLabel.textContent = nafdac ? 'Checking registration…' : 'Checking known fakes…';
 
@@ -384,7 +459,7 @@ function paint(result, input) {
     parts.push(
       input.nafdac
         ? '<p class="result-message">This number is not in our copy of the registry. Double-check it against the pack — if it matches, the product may be unregistered, or our copy may be out of date.</p>'
-        : '<p class="result-message">No registration number was entered, so only the product name and photo were compared with known fakes. Add the number from the pack for a full registration check.</p>',
+        : '<p class="result-message">No registration number was entered, so only the product name and photos were compared with known fakes. Add the number from the pack for a full registration check.</p>',
       `<ul class="result-meta">
         ${input.nafdac ? `<li><span class="k">NAFDAC number</span><span class="v">${escapeHtml(input.nafdac)}</span></li>` : ''}
         <li><span class="k">Product name entered</span><span class="v">${escapeHtml(input.productName)}</span></li>
@@ -442,14 +517,15 @@ function hazardBanner(hazard) {
 }
 
 function comparePanel(hazard) {
-  const userPhoto = els.preview.src;
+  const userPhoto = photos[0]?.dataUrl || '';
+  const userCaption = photos.length > 1 ? `Your photo (1 of ${photos.length})` : 'Your photo';
   const refs = Array.isArray(hazard.photos) ? hazard.photos.slice(0, 2) : [];
   if (!userPhoto || refs.length === 0) return '';
   return `<section class="compare-panel" aria-label="Compare your pack with the flagged pack">
     <h3>Compare these two packs</h3>
     <p>Left: your photo. Right: NAFDAC's photo of the flagged product. Check the seal, print, colours, and spelling — fakes often differ in small details.</p>
     <div class="compare-grid">
-      <figure><img src="${escapeHtml(userPhoto)}" alt="Your product photo"><figcaption>Your photo</figcaption></figure>
+      <figure><img src="${escapeHtml(userPhoto)}" alt="Your product photo"><figcaption>${escapeHtml(userCaption)}</figcaption></figure>
       <figure>${refs.map((src) => `<img src="${escapeHtml(src)}" alt="Official photo of the flagged product" loading="lazy">`).join('')}<figcaption>Official flagged pack</figcaption></figure>
     </div>
   </section>`;
@@ -490,7 +566,7 @@ function suspectsPanel(suspects) {
 
   return `<section class="suspect-panel" aria-labelledby="suspect-title">
     <h3 id="suspect-title">Possible match in our known-fake library</h3>
-    <p>These are leads from NAFDAC alerts on counterfeit and unregistered products, matched on the name you typed and any photo you attached. They are not a finding — compare the pack by hand before you decide.</p>
+    <p>These are leads from NAFDAC alerts on counterfeit and unregistered products, matched on the name you typed and any photos you attached. They are not a finding — compare the pack by hand before you decide.</p>
     <ul class="suspect-list">${cards}</ul>
   </section>`;
 }
@@ -584,11 +660,11 @@ async function setupNapamsPanel(input) {
 
 // ---------- post-check report modal ----------
 //
-// Reporting used to be a three-step wizard tucked under the verdict, and it
-// only appeared for packs the registry could not confirm. It is now a modal
-// that opens after every check, asks one plain question, and — when NAFDAC
-// published a photo of the flagged product — puts that photo next to yours so
-// the shopper has something real to compare against.
+// The modal opens after every check and leads with the outcome of the check
+// itself — the same verdict badge the result region shows, blue when the
+// registry matched — so the shopper always knows what they are being asked to
+// report on. Each photo taken for the check can be attached to the report
+// individually, with the pack shot pre-selected.
 
 const REPORT_ISSUES = [
   { label: 'Seal broken or resealed', note: 'The seal looked broken or tampered with' },
@@ -604,6 +680,15 @@ const REPORT_LEDES = {
   verified_inactive: 'This approval is not active right now. Did the pack look different or damaged where you bought it?',
   mismatch: 'These details did not match the registry. Does the pack look different or damaged?',
   not_found: 'This pack could not be confirmed. Does it look different or damaged?',
+};
+
+// Same visual language as the result region: reusing the r-* classes means
+// the badge colours stay defined in exactly one place in the stylesheet.
+const VERDICT_STRIP = {
+  verified: { className: 'r-verified', badge: 'Registry match', text: 'Registered and active' },
+  verified_inactive: { className: 'r-inactive', badge: 'Approval not active', text: 'Registered, but the approval is not active' },
+  mismatch: { className: 'r-mismatch', badge: 'Details mismatch', text: 'Could not be confirmed' },
+  not_found: { className: 'r-notfound', badge: 'Not found', text: 'No matching registration found' },
 };
 
 let reportModalEl = null;
@@ -649,9 +734,9 @@ document.addEventListener('keydown', (event) => {
 function reportReference(result) {
   const hazard = result.hazard;
   const suspects = Array.isArray(result.suspects) ? result.suspects : [];
-  const photos = [];
+  const referencePhotos = [];
   for (const src of [...(hazard?.photos || []), ...suspects.flatMap((suspect) => suspect.photos || [])]) {
-    if (typeof src === 'string' && src && !photos.includes(src)) photos.push(src);
+    if (typeof src === 'string' && src && !referencePhotos.includes(src)) referencePhotos.push(src);
   }
   const alertNumber = hazard?.alert_number || suspects[0]?.alert_number || null;
   const sourceUrl = hazard?.source_url || suspects.find((suspect) => suspect.source_url)?.source_url || null;
@@ -659,13 +744,14 @@ function reportReference(result) {
     ? `<a class="modal-reference-link" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener">Read the official alert${alertNumber ? ` ${escapeHtml(alertNumber)}` : ''}</a>`
     : '';
 
-  if (photos.length > 0) {
-    const refs = photos.slice(0, 2);
-    const userPhoto = els.preview.src;
+  if (referencePhotos.length > 0) {
+    const refs = referencePhotos.slice(0, 2);
+    const userPhoto = photos[0]?.dataUrl || '';
+    const userCaption = photos.length > 1 ? `Your photo (1 of ${photos.length})` : 'Your photo';
     return `<div class="modal-reference">
       <p class="modal-reference-label">NAFDAC's photo of the flagged pack${alertNumber ? ` · alert ${escapeHtml(alertNumber)}` : ''}</p>
       <div class="compare-grid">
-        ${userPhoto ? `<figure><img src="${escapeHtml(userPhoto)}" alt="Your product photo"><figcaption>Your photo</figcaption></figure>` : ''}
+        ${userPhoto ? `<figure><img src="${escapeHtml(userPhoto)}" alt="Your product photo"><figcaption>${escapeHtml(userCaption)}</figcaption></figure>` : ''}
         <figure>
           ${refs.map((src) => `<img src="${escapeHtml(src)}" alt="Official NAFDAC photo of the flagged product" loading="lazy">`).join('')}
           <figcaption>Flagged pack</figcaption>
@@ -686,16 +772,51 @@ function reportReference(result) {
   return '';
 }
 
+function reportVerdictStrip(result) {
+  const strip = VERDICT_STRIP[result.status] || VERDICT_STRIP.not_found;
+  const notes = [];
+  if (result.hazard) {
+    const type = result.hazard.alert_type === 'recall' ? 'recall' : 'safety alert';
+    notes.push(`NAFDAC has an active ${type} on this product${result.hazard.alert_number ? ` (${result.hazard.alert_number})` : ''}`);
+  }
+  if (result.community_flag?.flagged) {
+    notes.push(`${result.community_flag.report_count} community reports in the last 30 days`);
+  }
+  const noteHtml = notes.length > 0
+    ? `<p class="modal-verdict-note">${escapeHtml(notes.join(' · '))}</p>`
+    : '';
+  return `<div class="modal-verdict ${strip.className}">
+    <span class="result-badge">${strip.badge}</span>
+    <span class="modal-verdict-text">${escapeHtml(strip.text)}</span>
+  </div>${noteHtml}`;
+}
+
+// Attach choices: one tile per photo taken for this check, pack shot
+// pre-selected. The first checked photo travels in the report's photo field.
+function reportAttachChoices() {
+  if (photos.length === 0) {
+    return '<p class="report-attach-none">No photo was taken for this check.</p>';
+  }
+  return `<div class="report-attach-tiles" id="report-attach-tiles">
+    ${photos.map((photo, index) => `
+      <label class="report-attach-tile">
+        <input type="checkbox" data-photo-index="${index}" ${photo.kind === 'pack' ? 'checked' : ''}>
+        <img src="${escapeHtml(photo.dataUrl)}" alt="Attach photo ${index + 1}">
+        <span>${escapeHtml(photoLabel(photo.kind))}</span>
+      </label>`).join('')}
+  </div>`;
+}
+
 function openReportModal(input, result) {
   closeReportModal();
-  const photoAvailable = Boolean(els.preview.src);
   const modal = document.createElement('div');
   modal.className = 'report-modal';
   modal.id = 'report-modal';
   modal.innerHTML = `
     <section class="report-modal-card" role="dialog" aria-modal="true" aria-labelledby="report-modal-title" tabindex="-1">
       <button type="button" class="modal-close" id="report-close" aria-label="Close without reporting">\u00d7</button>
-      <p class="modal-kicker">One quick question</p>
+      <p class="modal-kicker">Your check result</p>
+      ${reportVerdictStrip(result)}
       <h2 id="report-modal-title">Did this pack look different or damaged?</h2>
       <p class="modal-lede">${escapeHtml(REPORT_LEDES[result.status] || REPORT_LEDES.not_found)}</p>
       <p class="modal-pack">${escapeHtml(input.productName)} <span>${input.nafdac ? escapeHtml(input.nafdac) : 'no registration number entered'}</span></p>
@@ -709,8 +830,9 @@ function openReportModal(input, result) {
           <label for="report-area">Where did you see it?<input id="report-area" type="text" maxlength="120" autocomplete="off" placeholder="e.g. Ikeja, Lagos"></label>
           <label for="report-note">What did you notice?<textarea id="report-note" maxlength="500" placeholder="e.g. Seal was already cut open"></textarea></label>
         </div>
-        <div class="report-options">
-          <label class="report-check"><input id="report-photo" type="checkbox" ${photoAvailable ? '' : 'disabled'}> Attach my photo <span class="report-check-hint">${photoAvailable ? 'optional' : 'no photo yet'}</span></label>
+        <div class="report-attach">
+          <p class="report-attach-label" id="report-attach-label">Attach photos of the pack <span>(optional)</span></p>
+          ${reportAttachChoices()}
           <button id="report-location" class="btn btn-ghost" type="button">Use my location</button>
         </div>
         <p id="report-status" class="report-status" role="status"></p>
@@ -789,7 +911,9 @@ function setupReportForm(modal, input, result) {
       areaEl.focus();
       return;
     }
-    const attachPhoto = modal.querySelector('#report-photo')?.checked && Boolean(els.preview.src);
+    const attachedPhotos = [...modal.querySelectorAll('#report-attach-tiles input:checked')]
+      .map((box) => photos[Number(box.dataset.photoIndex)]?.dataUrl)
+      .filter(Boolean);
     sendButton.disabled = true;
     status.textContent = 'Submitting your report…';
 
@@ -804,7 +928,7 @@ function setupReportForm(modal, input, result) {
           country: input.country,
           location_area: area,
           note,
-          photo: attachPhoto ? els.preview.src : undefined,
+          photo: attachedPhotos[0],
           latitude: coords?.latitude ?? undefined,
           longitude: coords?.longitude ?? undefined,
           session_id: sessionId(),
