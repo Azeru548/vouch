@@ -115,9 +115,14 @@
         </div>
 
         <div class="field">
-          <label for="in-mfr">Manufacturer <span class="optional">Optional, but improves accuracy</span></label>
-          <input id="in-mfr" name="manufacturer" type="text" placeholder="e.g. Alben Healthcare Industries Limited" spellcheck="false" maxlength="200" enterkeyhint="go">
+          <label for="in-batch">Batch / lot number <span class="optional">Optional — printed near the expiry date</span></label>
+          <input id="in-batch" name="batch" type="text" placeholder="e.g. 6289 or WL25024" spellcheck="false" maxlength="64" aria-describedby="batch-help" inputmode="text" enterkeyhint="next">
+          <span id="batch-help" class="field-help">The batch code (also labelled LOT or B.No) is printed on every blister and label. If a recall exists for this product, the batch tells us whether your pack is on it.</span>
         </div>
+
+        <div class="field">
+          <label for="in-mfr">Manufacturer <span class="optional">Optional, but improves accuracy</span></label>
+          <input id="in-mfr" name="manufacturer" type="text" placeholder="e.g. Alben Healthcare Industries Limited" spellcheck="false" maxlength="200" enterkeyhint="go">        </div>
 
         <button id="verify-button" class="btn btn-primary btn-block" type="submit">
           <span id="verify-label">Check registration</span>

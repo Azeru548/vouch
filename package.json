@@ -25,6 +25,7 @@
     "test:fakes": "node scripts/test_fakes.js",
     "test:alert-sync": "node scripts/test_alert_sync.js",
     "test:ppb-sync": "node scripts/test_ppb_sync.js",
+    "test:batch": "node scripts/test_batch.js",
     "test:report-ui": "node scripts/test_report_ui.js",
     "test:e2e": "node scripts/e2e_flow.js"
   },

@@ -109,14 +109,31 @@ app.post('/api/extract', async (req, res) => {
     return res.status(400).json(invalid);
   }
 
+  const country = req.body?.country === 'KE' ? 'KE' : 'NG';
+  // Kenya: PPB registration numbers look like H10737/CTD456/2016/R1 and often
+  // sit on the outer carton, while batch numbers are printed on every blister
+  // and label — for a Kenyan pack the batch is usually the readable number.
+  const numberLine = country === 'KE'
+    ? 'Find the PPB (Pharmacy and Poisons Board) registration number AND the batch number across ALL of the photos. '
+    : 'Find the NAFDAC registration number across ALL of the photos. ';
+  const batchLine = country === 'KE'
+    ? '{"registration_number": string|null, "batch_number": string|null, "found": boolean}. '
+    : '{"nafdac_number": string|null, "found": boolean}. ';
+  const batchRule = country === 'KE'
+    ? '- batch_number is the manufacturer\'s batch/lot code (often labelled BATCH, LOT, B.No or MFG). Copy it exactly as printed; set it to null only if no batch code is visible. '
+    : '';
+
   const prompt =
     'These are photos of the SAME product packaging (the pack itself, then close-ups such as the registration panel). ' +
-    'Find the NAFDAC registration number across ALL of the photos. ' +
+    numberLine +
     'Return ONLY a JSON object with exactly these keys: ' +
-    '{"nafdac_number": string|null, "found": boolean}. ' +
+    batchLine +
     'Rules: ' +
-    '- nafdac_number is REQUIRED. Set found=false and nafdac_number to null only if no NAFDAC number is visible in any photo. ' +
-    '- Copy the number exactly as printed, including the hyphen and any leading letters. ' +
+    (country === 'KE'
+      ? '- found is true only if at least one of the two numbers is visible. '
+      : '- nafdac_number is REQUIRED. Set found=false and nafdac_number to null only if no NAFDAC number is visible in any photo. ') +
+    '- Copy the number exactly as printed, including hyphens, slashes and any leading letters. ' +
+    batchRule +
     '- Prefer the sharpest, most legible rendering when the same number appears more than once. ' +
     '- Do not return a product name.';
 
@@ -166,12 +183,23 @@ app.post('/api/extract', async (req, res) => {
 
     const nafdac_number = candidates.length > 0 ? String(candidates[0]).trim().toUpperCase() : null;
     const found = (parsed && parsed.found === true) || nafdac_number != null;
-    const format_valid = nafdac_number != null && NAFDAC_RE.test(nafdac_number);
+    const format_valid = nafdac_number != null && (country === 'KE' ? /^[A-Z0-9][A-Z0-9/.-]{2,31}$/i.test(nafdac_number) : NAFDAC_RE.test(nafdac_number));
+
+    // Batch/lot codes: taken from the model's batch_number key when present,
+    // otherwise a loose scan of the raw text for a "BATCH/LOT: X" label.
+    let batch_number = null;
+    if (parsed && typeof parsed.batch_number === 'string' && parsed.batch_number.trim()) {
+      batch_number = parsed.batch_number.trim().toUpperCase();
+    } else {
+      const batchMatch = raw.match(/\b(?:BATCH|LOT|B\.?NO)\b[.:= ]+([A-Z0-9][A-Z0-9-]{2,20})/i);
+      if (batchMatch) batch_number = batchMatch[1].toUpperCase();
+    }
 
     res.json({
       nafdac_number,
       found,
       format_valid,
+      ...(country === 'KE' ? { batch_number } : {}),
       // The number alone is enough to proceed; the user always types the product name.
       usable: found && format_valid,
     });
@@ -268,7 +296,41 @@ function isPlainObject(value) {
 
 const AUTHORITY_NAMES = { NG: 'NAFDAC', KE: 'Pharmacy and Poisons Board (PPB)' };
 
-function toHazard(row) {
+// Batch codes are compared as upper-case alphanumerics: printed batch
+// strings pick up dashes, spaces and OCR noise that mean nothing.
+function normalizeBatch(value) {
+  return String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+// The alerts' batch column is a JSON array, but PPB tables sometimes run
+// several codes inside one element ("WL25024 WL25025"), so each element is
+// split on whitespace too. De-duplicated: one printed code, one comparison.
+function parseBatchList(value) {
+  try {
+    const parsed = JSON.parse(value || '[]');
+    if (!Array.isArray(parsed)) return [];
+    return [...new Set(parsed.flatMap((item) => String(item).split(/\s+/)).map(normalizeBatch).filter(Boolean))];
+  } catch {
+    return [];
+  }
+}
+
+// The batch tier decides how strongly a matched alert applies to the pack in
+// the shopper's hand:
+//   batch_matched    — the entered batch is on the alert's list. Near-definitive.
+//   batch_not_listed — the alert is batch-specific and this batch is not on it.
+//                      Bounded reassurance, never a green light: a counterfeiter
+//                      can print any batch they like.
+//   product_level    — no batch entered, or the alert lists no batches (e.g.
+//                      "all batches" recalls). The alert applies product-wide.
+function batchTierFor(batchesJson, batch) {
+  const norm = batch ? normalizeBatch(batch) : null;
+  const rowBatches = parseBatchList(batchesJson);
+  if (!norm || rowBatches.length === 0) return 'product_level';
+  return rowBatches.includes(norm) ? 'batch_matched' : 'batch_not_listed';
+}
+
+function toHazard(row, batchTier = 'product_level') {
   let batches = [];
   try {
     const parsed = JSON.parse(row.batches || '[]');
@@ -287,27 +349,36 @@ function toHazard(row) {
     source_url: row.source_url,
     alert_date: row.alert_date,
     batches,
+    batch_tier: batchTier,
     photos,
     source_country: row.source_country || 'NG',
     authority: AUTHORITY_NAMES[row.source_country || 'NG'] || 'NAFDAC',
   };
 }
 
-function hazardMatch(nafdacNumber, normalizedName, country = 'NG') {
+// Batch refines how a matched alert applies, but never widens matching: the
+// alert is found by number or name exactly as before. A batch on its own
+// matches nothing — short codes like "6289" collide across unrelated products.
+function hazardMatch(nafdacNumber, normalizedName, country = 'NG', batch = null) {
   const numbered = reportsDb.prepare(
     'SELECT alert_number, hazard, alert_type, source_url, alert_date, batches, source_country FROM hazard_alerts WHERE nafdac_number = ? COLLATE NOCASE AND source_country = ? LIMIT 1'
   ).get(nafdacNumber, country);
-  if (numbered) return toHazard(numbered);
+  if (numbered) return toHazard(numbered, batchTierFor(numbered.batches, batch));
   if (!normalizedName) return undefined;
   const unnamed = reportsDb.prepare(
     'SELECT alert_number, product_name, hazard, alert_type, source_url, alert_date, batches, source_country FROM hazard_alerts WHERE nafdac_number IS NULL AND source_country = ?'
   ).all(country);
+  const TIER_RANK = { batch_matched: 2, product_level: 1, batch_not_listed: 0 };
   let best = null;
   for (const row of unnamed) {
     const score = fuzz.token_set_ratio(normalizedName, normalizeProductName(row.product_name));
-    if (score >= 85 && (!best || score > best.score)) best = { row, score };
+    if (score < 85) continue;
+    const tier = batchTierFor(row.batches, batch);
+    if (!best || TIER_RANK[tier] > TIER_RANK[best.tier] || (TIER_RANK[tier] === TIER_RANK[best.tier] && score > best.score)) {
+      best = { row, score, tier };
+    }
   }
-  return best ? toHazard(best.row) : undefined;
+  return best ? toHazard(best.row, best.tier) : undefined;
 }
 
 // Groups recent reports about the same pack and warns once enough people agree.
@@ -592,6 +663,7 @@ app.get('/verify', (req, res) => {
   const { nafdac, product_name, manufacturer } = req.query;
   const country = String(req.query.country || 'NG').trim().toUpperCase();
   const appearanceParam = req.query.appearance;
+  const batchParam = typeof req.query.batch === 'string' ? req.query.batch.trim() : '';
   // The registration number is optional. Without one we skip the registry
   // entirely and answer from the known-fake library alone.
   const hasNumber = nafdac != null && String(nafdac).trim() !== '';
@@ -606,7 +678,8 @@ app.get('/verify', (req, res) => {
     String(nafdac ?? '').length > 32 ||
     String(product_name).length > 200 ||
     String(manufacturer ?? '').length > 200 ||
-    String(appearanceParam ?? '').length > 600
+    String(appearanceParam ?? '').length > 600 ||
+    batchParam.length > 64
   ) {
     return res.status(400).json({ error: 'input_too_long' });
   }
@@ -624,7 +697,7 @@ app.get('/verify', (req, res) => {
   const flag = communityFlag(normalizedNafdac, product_name, country);
   const normManu = manufacturer != null ? normalizeProductName(manufacturer) : null;
   const normAppearance = appearanceParam ? normalizeProductName(appearanceParam) : null;
-  const hazard = hazardMatch(normalizedNafdac, normName, country);
+  const hazard = hazardMatch(normalizedNafdac, normName, country, batchParam || null);
   if (rows.length === 0) {
     const suspects = knownFakeSuspects(normName, normAppearance, country);
     return res.json({
@@ -632,9 +705,10 @@ app.get('/verify', (req, res) => {
       nafdac: hasNumber ? nafdac : null,
       country,
       ...(hasNumber ? {} : { reason: 'no_number_provided' }),
-      ...(flag ? { community_flag: flag } : {}),
-      ...(hazard ? { hazard } : {}),
-      ...(suspects.length > 0 ? { suspects } : {}),
+    ...(flag ? { community_flag: flag } : {}),
+    ...(hazard ? { hazard } : {}),
+    ...(batchParam ? { batch: batchParam } : {}),
+    ...(suspects.length > 0 ? { suspects } : {}),
     });
   }
 
@@ -734,6 +808,7 @@ app.get('/verify', (req, res) => {
   if (message) payload.message = message;
   if (flag) payload.community_flag = flag;
   if (hazard) payload.hazard = hazard;
+  if (batchParam) payload.batch = batchParam;
   // Only attach library leads when the registry could NOT confirm the pack.
   // A confirmed registration is never second-guessed by this list.
   if (status === 'not_found' || status === 'mismatch') {

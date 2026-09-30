@@ -12,6 +12,7 @@ const els = {
   country: $('#in-country'),
   nafdac: $('#in-nafdac'),
   name: $('#in-name'),
+  batch: $('#in-batch'),
   mfr: $('#in-mfr'),
   confirmHint: $('#confirm-hint'),
   result: $('#result'),
@@ -274,7 +275,7 @@ async function runPackRead() {
     const response = await fetch('/api/extract', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ images: imageList }),
+      body: JSON.stringify({ images: imageList, country: els.country.value }),
     });
     const result = await response.json();
     if (attempt !== readAttempt) return;
@@ -283,17 +284,24 @@ async function runPackRead() {
     if (!response.ok) {
       setOcrStatus(
         result.error === 'vision_not_configured'
-          ? 'Photo reading is not configured. Type the NAFDAC number below.'
-          : 'Photo reading could not finish. Type the NAFDAC number below.',
+          ? 'Photo reading is not configured. Type the numbers below.'
+          : 'Photo reading could not finish. Type the numbers below.',
         true,
       );
       els.nafdac.focus();
       return;
     }
 
+    // Kenya packs: the batch code is often the only readable number on the
+    // blister, so it is filled whenever the photos show one.
+    if (result.batch_number && !els.batch.value.trim()) {
+      els.batch.value = result.batch_number;
+    }
+
     if (result.usable) {
       els.nafdac.value = result.nafdac_number;
-      setOcrStatus(`Read NAFDAC number “${result.nafdac_number}”${imageList.length > 1 ? ' from your photos' : ''}. Check it, then enter the product name.`);
+      const batchNote = result.batch_number ? ' Batch number filled in below.' : '';
+      setOcrStatus(`Read ${els.country.value === 'KE' ? 'registration' : 'NAFDAC'} number “${result.nafdac_number}”${imageList.length > 1 ? ' from your photos' : ''}.${batchNote} Check it, then enter the product name.`);
       els.nafdac.focus();
       els.nafdac.select();
       return;
@@ -302,8 +310,10 @@ async function runPackRead() {
     els.nafdac.value = result.nafdac_number || '';
     if (result.nafdac_number && !result.format_valid) {
       setOcrStatus(`Read “${result.nafdac_number}”, but its format is not valid. Correct it below.`, true);
+    } else if (result.batch_number) {
+      setOcrStatus(`No registration number found, but batch “${result.batch_number}” was filled in. Enter the numbers printed on the pack below.`, true);
     } else {
-      setOcrStatus('No clear NAFDAC number was found in your photos. Enter it below.', true);
+      setOcrStatus('No clear registration number was found in your photos. Enter it below.', true);
     }
     els.confirmHint.textContent = 'Correct the number if needed, then enter the exact product name.';
     els.nafdac.focus();
@@ -344,6 +354,7 @@ els.form.addEventListener('submit', (event) => {
 async function submitVerify() {
   const nafdac = els.nafdac.value.trim();
   const productName = els.name.value.trim();
+  const batch = els.batch.value.trim();
   const manufacturer = els.mfr.value.trim();
   const country = els.country.value;
 
@@ -375,13 +386,14 @@ async function submitVerify() {
   const query = new URLSearchParams({ product_name: productName, country });
   if (nafdac) query.set('nafdac', nafdac);
   if (manufacturer) query.set('manufacturer', manufacturer);
+  if (batch) query.set('batch', batch);
   if (packDescriptor) query.set('appearance', packDescriptor);
 
   try {
     const response = await fetch(`/verify?${query}`);
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'verification_failed');
-    paint(result, { nafdac, productName, manufacturer, country });
+    paint(result, { nafdac, productName, batch, manufacturer, country });
   } catch (error) {
     showServiceError(error);
   } finally {
@@ -446,6 +458,8 @@ function paint(result, input) {
   const parts = [];
   if (result.hazard) {
     parts.push(hazardBanner(result.hazard));
+    const batchNote = batchNoteFor(result.hazard, input.batch);
+    if (batchNote) parts.push(`<p class="result-warn-note batch-note">${batchNote}</p>`);
     parts.push(comparePanel(result.hazard));
   }
   if (result.community_flag?.flagged) {
@@ -513,16 +527,36 @@ function authorityFull(sourceCountry) {
   return sourceCountry === 'KE' ? 'Pharmacy and Poisons Board (PPB), Kenya' : 'NAFDAC, Nigeria';
 }
 
+// One honest sentence under the hazard banner saying how far the batch check
+// went — or nothing when no batch was entered and none is needed to read the
+// alert.
+function batchNoteFor(hazard, batch) {
+  const listed = Array.isArray(hazard.batches) && hazard.batches.length > 0;
+  const batchText = listed ? hazard.batches.map(escapeHtml).join(', ') : '';
+  if (hazard.batch_tier === 'batch_matched') {
+    return `Your batch <strong>${escapeHtml(batch || '')}</strong> is on this alert's batch list (${batchText}). Treat this pack as part of the recall.`;
+  }
+  if (hazard.batch_tier === 'batch_not_listed') {
+    return `This alert is batch-specific (batches ${batchText}) and batch <strong>${escapeHtml(batch || '')}</strong> is not on the list — but a clean batch does not prove a pack is genuine. Compare the photos and check with a pharmacist.`;
+  }
+  return '';
+}
+
 function hazardBanner(hazard) {
   const batches = Array.isArray(hazard.batches) && hazard.batches.length > 0
     ? hazard.batches.map(escapeHtml).join(', ')
     : 'see alert for details';
   const type = hazard.alert_type === 'recall' ? 'Recall' : 'Safety alert';
   const short = authorityShort(hazard.source_country);
+  const tierTag = hazard.batch_tier === 'batch_matched'
+    ? ' · <strong>your batch is listed</strong>'
+    : hazard.batch_tier === 'batch_not_listed'
+      ? ' · your batch is not listed'
+      : '';
   return `<div class="hazard-alert" role="alert">
     <strong>${escapeHtml(short)} ${escapeHtml(type)}${hazard.alert_number ? ` No. ${escapeHtml(hazard.alert_number)}` : ''}</strong>
     <span>${escapeHtml(hazard.hazard)}</span>
-    <span>Source: ${escapeHtml(authorityFull(hazard.source_country))} · Batches: ${batches} · Issued ${escapeHtml(hazard.alert_date)} · <a href="${escapeHtml(hazard.source_url)}" target="_blank" rel="noopener">Official alert</a></span>
+    <span>Source: ${escapeHtml(authorityFull(hazard.source_country))} · Batches: ${batches}${tierTag} · Issued ${escapeHtml(hazard.alert_date)} · <a href="${escapeHtml(hazard.source_url)}" target="_blank" rel="noopener">Official alert</a></span>
   </div>`;
 }
 
@@ -977,6 +1011,7 @@ function setupReportForm(modal, input, result) {
             score: typeof result.score === 'number' ? result.score : null,
             country: input.country,
             product_name: input.productName,
+            batch: input.batch || null,
             matched: record ? {
               product_name: record.product_name,
               manufacturer: record.manufacturer,

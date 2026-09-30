@@ -1785,3 +1785,7 @@ html.modal-open { overflow: hidden; }
 .country-chip {
   border-style: dashed;
 }
+
+/* ---- Batch note under the hazard banner ---- */
+/* Tier wording for the hybrid name+batch check; sits right under the alert. */
+.batch-note { margin-top: 0.45rem; }
