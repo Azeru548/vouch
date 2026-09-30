@@ -8,8 +8,10 @@ const { DatabaseSync } = require('node:sqlite');
 // database in the OS temp dir — the live DB is only ever *read* as a template,
 // and the NAFDAC index is the committed fixture, never the network.
 
-const { parseIndexHtml, parseAlertDate, parseAlertNumber, alertNumberFromTitleOrUrl, runSync } = require('./alert_sync');
-const { dismissPending, promotePending, PromoteError } = require('./promote_alert');
+const { parseIndexHtml, parseAlertDate, parseAlertNumber, importAlerts, runSync } = require('./alert_sync');
+const { deriveCategory, productFromTitle, normalizeAlertType, alertNumberFromTitleOrUrl } = require('./nafdac_alert_parser');
+const { ensureKnownFakesTable } = require('./fakes_schema');
+const { ensureHazardTable } = require('./hazard_schema');
 
 const FIXTURE = path.join(__dirname, 'fixtures', 'nafdac_alerts_index.html');
 
@@ -22,6 +24,21 @@ assert.equal(parseAlertNumber('Public Alert No. 043/2026-NAFDAC Places Products 
 assert.equal(parseAlertNumber('Public Alert No.35/2025 – Substandard batches of Annmox'), '035/2025');
 assert.equal(parseAlertNumber('Updated Public Alert No. 030A/2025 - Sale of Confirmed Substandard ARTEMETRIN DS Tablets'), '030A/2025');
 assert.equal(alertNumberFromTitleOrUrl('no number here', 'https://nafdac.gov.ng/public-alert-no-12-2026-something/'), '012/2026');
+
+assert.equal(deriveCategory('Drugs'), 'drug');
+assert.equal(deriveCategory('Food'), 'food');
+assert.equal(deriveCategory('Cosmetics'), 'cosmetic');
+assert.equal(deriveCategory('Chemicals'), 'chemical');
+assert.equal(deriveCategory('Regulated Products'), 'other');
+assert.equal(normalizeAlertType('Recalls'), 'recall');
+assert.equal(normalizeAlertType('Blacklisting'), 'blacklist');
+assert.equal(normalizeAlertType('Safety Alert'), 'safety_alert');
+
+assert.equal(
+  productFromTitle('Public Alert No. 043/2026-NAFDAC Places Products Marketed by Mofus Nigeria Ltd on Watchlist'),
+  'NAFDAC Places Products Marketed by Mofus Nigeria Ltd on Watchlist',
+);
+assert.equal(productFromTitle('Blacklisting of Aveo Pharmaceuticals'), 'Blacklisting of Aveo Pharmaceuticals');
 
 const html = fs.readFileSync(FIXTURE, 'utf8');
 const rows = parseIndexHtml(html);
@@ -36,71 +53,72 @@ assert.ok(oracire, 'ORACIRE+ alert should be in the index');
 assert.equal(oracire.alert_date, '2026-08-19');
 assert.equal(oracire.product_type, 'Regulated Products');
 
-// --- Lifecycle on a throwaway DB ---
+// --- Import lifecycle on a throwaway DB ---
 const tmpDb = path.join(os.tmpdir(), `vouch-sync-test-${process.pid}.db`);
 fs.copyFileSync(path.join(__dirname, '..', 'data', 'nafdac_products.db'), tmpDb);
 // runSync resolves the database from the environment on every call — point it
 // at the throwaway copy so the real database is never written by tests.
 process.env.DATABASE_PATH = tmpDb;
 const db = new DatabaseSync(tmpDb);
-// Start from a clean pending slate: the live database may already hold rows
-// from a real sync, and the lifecycle below needs a deterministic first run.
-db.exec('DELETE FROM pending_alerts');
 
 try {
-  const first = runSync({ html });
-  assert.ok(first.imported > 0, 'first sync must import the unseen index rows');
-  assert.equal(first.imported, first.pending_new);
-  const importedCount = first.imported;
+  // Start from an empty slate: drop earlier sync rows and the curated
+  // library, then plant ONE curated pair to exercise the collision rule.
+  db.exec('DELETE FROM known_fakes');
+  db.exec('DELETE FROM hazard_alerts');
+  ensureKnownFakesTable(db);
+  ensureHazardTable(db);
+  db.prepare(`
+    INSERT INTO known_fakes (alert_number, product_name, nafdac_number, batches, hazard, source_url, photos_json, category, brand_name, aliases, appearance)
+    VALUES ('041/2026', 'ORACIRE+ Toothpaste (curated)', NULL, '[]', 'hand-tuned row', 'https://nafdac.gov.ng/curated-oracire/', '["/fakes/041-2026-1.png"]', 'cosmetic', 'ORACIRE+', '["Oracire Plus"]', 'hand-written appearance')
+  `).run();
+  db.prepare(`
+    INSERT INTO hazard_alerts (alert_number, product_name, nafdac_number, batches, hazard, alert_type, manufacturer, source_url, alert_date, in_registry)
+    VALUES ('041/2026', 'ORACIRE+ Toothpaste (curated)', NULL, '[]', 'hand-tuned row', 'safety_alert', NULL, 'https://nafdac.gov.ng/curated-oracire/', '2026-08-19', 0)
+  `).run();
 
-  // Idempotent: a second pass imports nothing new.
-  const second = runSync({ html });
-  assert.equal(second.imported, 0, 'second sync must import nothing');
-  assert.equal(second.known_before, second.index_rows);
+  const first = importAlerts(db, rows);
+  assert.ok(first.imported > 380, `first import should bring in the index, saw ${first.imported}`);
+  assert.ok(first.skipped.curated_collision >= 1, 'the curated ORACIRE row must cause a collision skip');
+  assert.equal(first.skipped.already_known, 0);
 
-  // Curated rows are never re-imported: known_fakes URLs stay unknown to pending.
-  const curatedUrls = db.prepare('SELECT source_url FROM known_fakes').all().map((r) => r.source_url);
-  assert.ok(curatedUrls.length >= 15);
-  const pendingUrls = new Set(db.prepare('SELECT source_url FROM pending_alerts').all().map((r) => r.source_url));
-  for (const url of curatedUrls) assert.ok(!pendingUrls.has(url), `curated url ${url} must not be pending`);
+  // The curated row survived untouched; the colliding fixture row was skipped.
+  const curated = db.prepare("SELECT * FROM known_fakes WHERE alert_number = '041/2026'").get();
+  assert.equal(curated.product_name, 'ORACIRE+ Toothpaste (curated)');
+  assert.equal(curated.source_url, 'https://nafdac.gov.ng/curated-oracire/');
+  assert.ok(JSON.parse(curated.photos_json).length === 1, 'curated photos intact');
 
-  // Dismissal keeps the row but marks it.
-  const anyPending = db.prepare("SELECT id FROM pending_alerts WHERE status = 'new' LIMIT 1").get();
-  dismissPending(db, anyPending.id);
-  assert.equal(db.prepare('SELECT status FROM pending_alerts WHERE id = ?').get(anyPending.id).status, 'dismissed');
-  assert.throws(() => dismissPending(db, 999999), PromoteError);
+  // An imported row has the right shape: derived category, title as hazard,
+  // NAFDAC's headline phrase as the product name, no photos or appearance.
+  const cerelac = db.prepare("SELECT * FROM known_fakes WHERE source_url LIKE '%018-2026%'").get();
+  assert.ok(cerelac, 'Cerelac alert imported');
+  assert.equal(cerelac.category, 'food');
+  assert.ok(cerelac.hazard.includes('Cerelac'), 'hazard carries the NAFDAC headline');
+  assert.equal(JSON.parse(cerelac.photos_json).length, 0, 'imported rows carry no photos');
+  assert.equal(cerelac.appearance, null);
+  const cerelacHazard = db.prepare('SELECT * FROM hazard_alerts WHERE source_url LIKE ?').get('%018-2026%');
+  assert.ok(cerelacHazard, 'matching hazard_alerts row exists');
+  assert.equal(cerelacHazard.alert_type, 'safety_alert');
 
-  // Promotion moves a row into both curated tables and removes it from pending.
-  const toPromote = db.prepare("SELECT * FROM pending_alerts WHERE status = 'new' LIMIT 1").get();
-  assert.ok(toPromote.alert_number, 'fixture rows carry alert numbers');
-  const result = promotePending(db, toPromote.id, {
-    name: 'Test Promoted Product',
-    category: 'food',
-    aliases: ['Test Alias'],
-    batches: ['B1'],
-  });
-  assert.equal(result.promoted.alert, toPromote.alert_number);
-  const fakeRow = db.prepare('SELECT * FROM known_fakes WHERE alert_number = ?').get(toPromote.alert_number);
-  assert.equal(fakeRow.product_name, 'Test Promoted Product');
-  assert.equal(fakeRow.category, 'food');
-  assert.equal(fakeRow.source_url, toPromote.source_url);
-  const hazardRow = db.prepare('SELECT product_name FROM hazard_alerts WHERE alert_number = ?').get(toPromote.alert_number);
-  assert.equal(hazardRow.product_name, 'Test Promoted Product');
-  assert.ok(!db.prepare('SELECT 1 FROM pending_alerts WHERE id = ?').get(toPromote.id), 'promoted row leaves pending');
+  // Idempotency: a second pass imports nothing and skips everything known.
+  const second = importAlerts(db, rows);
+  assert.equal(second.imported, 0, 'second import must add nothing');
+  assert.ok(second.skipped.already_known >= first.imported);
 
-  // Promoting an alert number already curated from a DIFFERENT page is refused.
-  const duplicate = db.prepare("SELECT * FROM pending_alerts WHERE status = 'new' AND alert_number = ? LIMIT 1").get('041/2026');
-  if (duplicate) {
-    assert.throws(() => promotePending(db, duplicate.id, { name: 'X', category: 'food' }), PromoteError);
-  }
+  // Consistency: every library row must have a hazard_alerts twin with the
+  // same URL — the seed and the sync each insert into both tables.
+  const orphans = db.prepare(`
+    SELECT COUNT(*) AS n FROM known_fakes k
+    WHERE NOT EXISTS (SELECT 1 FROM hazard_alerts h WHERE h.source_url = k.source_url)
+  `).get().n;
+  assert.equal(orphans, 0, `every known_fakes row needs a hazard_alerts twin, found ${orphans} orphans`);
 
-  // Promotion validation.
-  const nextPending = db.prepare("SELECT id FROM pending_alerts WHERE status = 'new' LIMIT 1").get();
-  assert.throws(() => promotePending(db, nextPending.id, { category: 'food' }), PromoteError);
-  assert.throws(() => promotePending(db, nextPending.id, { name: 'X', category: 'vehicle' }), PromoteError);
-  assert.throws(() => promotePending(db, 999999, { name: 'X', category: 'food' }), PromoteError);
+  // runSync (the file-level entry the CLI uses) behaves identically.
+  const summary = runSync({ html });
+  assert.equal(summary.imported, 0);
+  assert.equal(summary.index_rows, rows.length);
 
-  console.log(`alert-sync: parser (${rows.length} rows), sync import (${importedCount}) + idempotency, dismiss, promote, and guards passed`);
+  console.log(`alert-sync: parser (${rows.length} rows), direct import (${first.imported}), curated-collision skip, idempotency, and twin-table consistency passed`);
 } finally {
   db.close();
   fs.rmSync(tmpDb, { force: true });

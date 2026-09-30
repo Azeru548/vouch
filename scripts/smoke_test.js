@@ -96,9 +96,8 @@ async function waitForServer() {
     const alertsBody = await alertsResponse.json();
     assert.ok(alertsBody.alerts.length >= 10, `known-fake library should be populated, saw ${alertsBody.alerts.length}`);
 
-    const pendingResponse = await fetch(`${BASE}/api/alerts/pending`);
-    assert.equal(pendingResponse.status, 200);
-    assert.ok(Array.isArray((await pendingResponse.json()).alerts));
+    const pendingGone = await fetch(`${BASE}/api/alerts/pending`);
+    assert.equal(pendingGone.status, 404, 'review stage was removed; pending endpoint must not exist');
 
     const syncNoKey = await fetch(`${BASE}/api/alerts/sync`, { method: 'POST' });
     assert.equal(syncNoKey.status, 503, 'sync without ADMIN_KEY must be disabled');

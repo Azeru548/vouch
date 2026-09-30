@@ -15,7 +15,6 @@
     "seed:fakes": "node scripts/seed_fakes.js",
     "alerts:sync": "node scripts/alert_sync.js",
     "alerts:sync:test": "node scripts/alert_sync.js --fixture",
-    "alerts:promote": "node scripts/promote_alert.js",
     "enrich:manufacturers": "node scripts/enrich_manufacturers.js",
     "enrich:fake-appearance": "node scripts/enrich_fake_appearance.js",
     "test:extract": "node scripts/test_extract.js",

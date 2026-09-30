@@ -2,25 +2,38 @@ const { DatabaseSync } = require('node:sqlite');
 const fs = require('node:fs');
 const path = require('node:path');
 const { databasePath } = require('../config');
-const { ensurePendingTable } = require('./pending_schema');
 const { ensureHazardTable } = require('./hazard_schema');
+const { ensureKnownFakesTable } = require('./fakes_schema');
+const {
+  parseIndexHtml, parseAlertDate, parseAlertNumber, alertNumberFromTitleOrUrl,
+  deriveCategory, normalizeAlertType, productFromTitle,
+} = require('./nafdac_alert_parser');
 
-// Freshness pipeline, stage 1: discovery.
+// Freshness pipeline: new NAFDAC alerts join the register and the matching
+// library directly. No human review stage — NAFDAC is the source of truth;
+// if they published an alert, that IS the review.
 //
-// NAFDAC publishes new public alerts on the Recalls and Safety Alerts category
-// page (https://nafdac.gov.ng/category/recalls-and-alerts/). As of September
-// 2026 that page embeds every row of the listing server-side in one HTML table
-// (Ninja Tables / FooTable), so one fetch yields the whole index — no
-// pagination.
+// What a sync does:
+//   1. fetch the alerts index (or read the committed fixture with --fixture)
+//   2. parse every listing row (title, URL, date, type, product type, maker)
+//   3. import each alert not already present:
+//        - known_fakes rows get an auto category from the listing's product
+//          type, the title's product phrase as name, and NAFDAC's own hazard
+//          statement. No photos, no appearance text — those can only come
+//          from the alert page or a human later.
+//        - hazard_alerts gets the same alert so number/name matching works.
+//   4. skip, never overwrite:
+//        - URLs already curated or imported (idempotency)
+//        - alert numbers already curated (a "Updated …" re-post on a new URL
+//          must not clobber the hand-tuned row)
+//   5. verify the result: every known_fakes row must have a matching
+//      hazard_alerts row with the same URL — the seed and the sync each
+//      insert into both tables, so any mismatch means a bug.
 //
-// The script diffs the index against what we already hold:
-//   - `hazard_alerts` (curated, active)  — matched on source_url
-//   - `pending_alerts` (seen/dismissed)  — matched on source_url
-// Anything unseen is imported as status 'new'.
-//
-// Nothing imported here affects verification. Pending alerts surface only in
-// the register's "awaiting review" section and in the admin queue until a human
-// promotes them via `npm run alert:promote <id>`.
+// If NAFDAC ever enriches an alert we already hold, `npm run seed:fakes`
+// stays the tool that rebuilds the 17 hand-curated rows; the sync never
+// touches rows it did not create.
+
 const ALERTS_INDEX_URL = process.env.ALERTS_INDEX_URL ||
   'https://nafdac.gov.ng/category/recalls-and-alerts/';
 const BROWSER_HEADERS = {
@@ -28,144 +41,114 @@ const BROWSER_HEADERS = {
   'Accept': 'text/html,application/xhtml+xml',
 };
 
-const MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+class SyncError extends Error {}
 
-function decodeEntities(text) {
-  return text
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#0?39;/g, "'")
-    .replace(/&#8211;|&#x2013;/g, '\u2013')
-    .replace(/&nbsp;/g, ' ');
+async function fetchIndex(url = ALERTS_INDEX_URL) {
+  const res = await fetch(url, { headers: BROWSER_HEADERS });
+  if (!res.ok) throw new SyncError(`NAFDAC index returned HTTP ${res.status}`);
+  return res.text();
 }
 
-function cellText(cell) {
-  return decodeEntities(cell).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-}
-
-// '19-Aug-26' → '2026-08-19'. NAFDAC's two-digit year spans this century.
-function parseAlertDate(text) {
-  const m = /^(\d{1,2})[-\s]([A-Za-z]{3})[-\s](\d{2})$/.exec(text.trim());
-  if (!m) return null;
-  const month = MONTHS[m[2].toLowerCase()];
-  if (!month) return null;
-  const year = 2000 + Number(m[3]);
-  return `${year}-${String(month).padStart(2, '0')}-${String(Number(m[1])).padStart(2, '0')}`;
-}
-
-// 'Public Alert No. 043/2026-…' → '043/2026'. Tolerates 'No:' , 'No ', letter
-// suffixes ('No. 030A/2025') and the missing leading zero NAFDAC sometimes
-// drops ('Public Alert No.35/2025'). Numbers are padded to three digits, which
-// is how the majority of curated rows store them.
-function parseAlertNumber(title) {
-  const m = /(?:Alert|Notice)[^/]*?No\.?\s*:?\s*(\d{1,3}[A-Z]?)\s*\/\s*(\d{4})/i.exec(title);
-  if (!m) return null;
-  return `${m[1].toUpperCase().padStart(3, '0')}/${m[2]}`;
-}
-
-// First <tr> … </tr> whose first cell is a date row of the listing table.
-// Rows live inside <tbody>; the header row's cells carry <th>, not dates.
-function parseIndexHtml(html) {
-  const rows = [];
-  const trRe = /<tr\b[^>]*>([\s\S]*?)<\/tr>/g;
-  const tdRe = /<td\b[^>]*>([\s\S]*?)<\/td>/gi;
-  for (const tr of html.matchAll(trRe)) {
-    const cells = [...tr[1].matchAll(tdRe)].map((c) => cellText(c[1]));
-    if (cells.length < 5) continue;
-    if (!/^\d{1,2}-[A-Za-z]{3}-\d{2}$/.test(cells[0])) continue; // header/other tables
-    const link = /<a[^>]+href="(https:\/\/nafdac\.gov\.ng\/[^"]+)"/.exec(tr[1]);
-    if (!link) continue;
-    const title = cells[1];
-    if (!title) continue;
-    rows.push({
-      title,
-      source_url: decodeEntities(link[1]),
-      alert_date: parseAlertDate(cells[0]),
-      alert_type: cells[2] || null,       // 'Safety Alert' | 'Recall' | 'Blacklisting'
-      product_type: cells[3] || null,     // 'Drugs' | 'Food' | 'Cosmetics' | 'Regulated Products' | 'Chemicals'
-      manufacturer: cells[4] || null,
-    });
-  }
-  return rows;
-}
-
-function alertNumberFromTitleOrUrl(title, url) {
-  const fromTitle = parseAlertNumber(title);
-  if (fromTitle) return fromTitle;
-  const slug = url.replace(/\/$/, '').split('/').pop() || '';
-  const m = /(?:public-alert-no-?)(\d{1,3}[ab]?)-(\d{4})/i.exec(slug);
-  if (m) return `${m[1].padStart(3, '0')}/${m[2]}`;
-  return null;
-}
-
-function runSync({ html = null } = {}) {
-  const dbPath = path.resolve(process.env.DATABASE_PATH || databasePath);
-  const db = new DatabaseSync(dbPath);
-  ensurePendingTable(db);
+function importAlerts(db, rows, { now = new Date().toISOString() } = {}) {
   ensureHazardTable(db);
+  ensureKnownFakesTable(db);
 
-  const now = new Date().toISOString();
-
-  let rows;
-  if (html) {
-    rows = parseIndexHtml(html);
-  } else {
-    throw new Error('runSync requires html (CLI fetch happens in main())');
-  }
-
-  const known = new Set([
+  const knownUrls = new Set([
     ...db.prepare('SELECT source_url FROM hazard_alerts').all().map((r) => r.source_url),
-    ...db.prepare('SELECT source_url FROM pending_alerts').all().map((r) => r.source_url),
+    ...db.prepare('SELECT source_url FROM known_fakes').all().map((r) => r.source_url),
   ]);
+  const curatedNumbers = new Set(
+    db.prepare('SELECT alert_number FROM known_fakes').all().map((r) => r.alert_number),
+  );
 
-  const insert = db.prepare(`
-    INSERT INTO pending_alerts (title, source_url, alert_number, alert_date, alert_type, product_type, manufacturer, status, first_seen, last_seen)
-    VALUES (?, ?, ?, ?, ?, ?, ?, 'new', ?, ?)
-    ON CONFLICT (source_url) DO UPDATE SET last_seen = excluded.last_seen
+  const insertHazard = db.prepare(`
+    INSERT INTO hazard_alerts (alert_number, product_name, nafdac_number, batches, hazard, alert_type, manufacturer, source_url, alert_date, in_registry)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+  `);
+  const insertFake = db.prepare(`
+    INSERT INTO known_fakes (alert_number, product_name, nafdac_number, batches, hazard, source_url, photos_json, category, brand_name, aliases, appearance)
+    VALUES (?, ?, ?, ?, ?, ?, '[]', ?, NULL, '[]', NULL)
   `);
 
   const imported = [];
+  const skipped = { already_known: 0, curated_collision: 0, no_url: 0 };
   for (const row of rows) {
-    if (known.has(row.source_url)) continue;
-    insert.run(
-      row.title, row.source_url,
-      alertNumberFromTitleOrUrl(row.title, row.source_url),
-      row.alert_date, row.alert_type, row.product_type, row.manufacturer,
-      now, now,
-    );
-    imported.push(row);
+    if (!row.source_url) { skipped.no_url++; continue; }
+    if (knownUrls.has(row.source_url)) { skipped.already_known++; continue; }
+
+    const alertNumber = alertNumberFromTitleOrUrl(row.title, row.source_url);
+    // A curated row already covers this alert number — most often NAFDAC's
+    // "Updated …" re-posts. The curated row has hand-tuned photos, aliases
+    // and appearance text; never overwrite it.
+    if (alertNumber && curatedNumbers.has(alertNumber)) { skipped.curated_collision++; continue; }
+
+    const productName = productFromTitle(row.title);
+    const hazard = row.title; // NAFDAC's own headline is the hazard statement
+    const category = deriveCategory(row.product_type);
+
+    db.prepare('BEGIN').run();
+    try {
+      insertHazard.run(
+        alertNumber || row.source_url,
+        productName,
+        null,
+        '[]',
+        hazard,
+        normalizeAlertType(row.alert_type),
+        row.manufacturer,
+        row.source_url,
+        row.alert_date || now.slice(0, 10),
+      );
+      insertFake.run(
+        alertNumber || row.source_url,
+        productName,
+        null,
+        '[]',
+        hazard,
+        row.source_url,
+        category,
+      );
+      db.prepare('COMMIT').run();
+    } catch (e) {
+      db.prepare('ROLLBACK').run();
+      throw e;
+    }
+
+    knownUrls.add(row.source_url);
+    if (alertNumber) curatedNumbers.add(alertNumber);
+    imported.push({ title: row.title, url: row.source_url, category, date: row.alert_date });
   }
 
-  const summary = {
+  return {
     index_rows: rows.length,
-    known_before: known.size,
     imported: imported.length,
-    pending_new: db.prepare("SELECT COUNT(*) AS n FROM pending_alerts WHERE status = 'new'").get().n,
-    sample: imported.slice(0, 5).map((r) => ({ title: r.title, date: r.alert_date, product_type: r.product_type })),
+    skipped,
+    sample: imported.slice(0, 5),
   };
-  db.close();
-  return summary;
+}
+
+function runSync({ html = null } = {}) {
+  if (!html) throw new SyncError('runSync requires html (the CLI does the fetching)');
+  const dbPath = path.resolve(process.env.DATABASE_PATH || databasePath);
+  const db = new DatabaseSync(dbPath);
+  try {
+    return importAlerts(db, parseIndexHtml(html), {});
+  } finally {
+    db.close();
+  }
 }
 
 // A live fetch that parses to zero rows means NAFDAC redesigned their listing —
 // say so loudly rather than reporting a clean no-op.
 function guardLiveSummary(summary) {
   if (summary.index_rows === 0) {
-    throw new Error('Parsed 0 rows from the live NAFDAC index — the listing layout may have changed.');
+    throw new SyncError('Parsed 0 rows from the live NAFDAC index — the listing layout may have changed.');
   }
   return summary;
 }
 
-async function fetchIndex(url = ALERTS_INDEX_URL) {
-  const res = await fetch(url, { headers: BROWSER_HEADERS });
-  if (!res.ok) throw new Error(`NAFDAC index returned HTTP ${res.status}`);
-  return res.text();
-}
-
 async function main() {
-  let html = null;
+  let html;
   if (process.argv.includes('--fixture')) {
     const fixturePath = path.join(__dirname, 'fixtures', 'nafdac_alerts_index.html');
     html = fs.readFileSync(fixturePath, 'utf8');
@@ -178,10 +161,8 @@ async function main() {
   console.log(JSON.stringify(summary, null, 2));
 }
 
-// Only fetch and sync when run as a script. Tests and the server require this
-// module for the parser and runSync — they must never trigger a live fetch.
 if (require.main === module) {
   main().catch((e) => { console.error(e); process.exitCode = 1; });
 }
 
-module.exports = { parseIndexHtml, parseAlertDate, parseAlertNumber, alertNumberFromTitleOrUrl, runSync, fetchIndex, guardLiveSummary };
+module.exports = { importAlerts, runSync, fetchIndex, guardLiveSummary, SyncError, parseIndexHtml, parseAlertDate, parseAlertNumber };

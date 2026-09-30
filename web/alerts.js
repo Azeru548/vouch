@@ -110,47 +110,6 @@ filterChips.forEach((chip) => {
 
 searchInput.addEventListener('input', applyFilters);
 
-const PENDING_DEFAULT_LIMIT = 12;
-const pendingSection = document.getElementById('pending-section');
-const pendingList = document.getElementById('pending-list');
-const pendingMore = document.getElementById('pending-more');
-
-function pendingCard(row) {
-  const date = row.alert_date
-    ? `<span class="pending-date">${escapeHtml(row.alert_date)}</span>`
-    : '';
-  const metaBits = [row.product_type, row.manufacturer].filter(Boolean)
-    .map((bit) => escapeHtml(bit)).join(' · ');
-  const meta = metaBits ? `<span class="pending-meta">${metaBits}</span>` : '';
-  const number = row.alert_number ? `<span class="pending-number">Alert ${escapeHtml(row.alert_number)}</span>` : '';
-  return `<article class="pending-card">
-    <div class="pending-card-head">${number}${date}</div>
-    <h3>${escapeHtml(row.title)}</h3>
-    ${meta ? `<p class="pending-meta-line">${meta}</p>` : ''}
-    <a class="pending-source" href="${escapeHtml(row.source_url)}" target="_blank" rel="noopener">Read on nafdac.gov.ng ↗</a>
-  </article>`;
-}
-
-async function loadPending() {
-  try {
-    const showAll = new URLSearchParams(window.location.search).get('pending') === 'all';
-    const url = new URL('/api/alerts/pending', window.location.origin);
-    url.searchParams.set('status', 'new');
-    url.searchParams.set('limit', showAll ? '200' : String(PENDING_DEFAULT_LIMIT));
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const body = await response.json();
-    const rows = body.alerts || [];
-    if (rows.length === 0) return;
-    pendingList.innerHTML = rows.map(pendingCard).join('');
-    pendingSection.classList.remove('hidden');
-    if (!showAll && rows.length > PENDING_DEFAULT_LIMIT) pendingMore.classList.remove('hidden');
-  } catch {
-    // The pending feed is an addition, not a dependency — the register must
-    // still render when it is unavailable.
-  }
-}
-
 (async () => {
   try {
     const response = await fetch('/api/alerts');
@@ -163,5 +122,4 @@ async function loadPending() {
     errorEl.classList.remove('hidden');
   }
   applyFilters();
-  loadPending();
 })();
