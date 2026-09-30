@@ -219,8 +219,14 @@ The database is the asset; every roadmap item either widens it, deepens it, or s
 
 **Then**
 4. **KE registry widening** — chase PPB food/cosmetic registration sources to close the Kenyan food-safety gap.
-5. **KEBS S-Mark registry** — the non-pharma Kenyan register (44k certified products, permit printed on the
-   label by law). Their site was down at build time; revisit when kebs.org is back.
+5. **KEBS S-Mark registry** — the non-pharma Kenyan register (permit printed on the label by law). Fully
+   scouted 2026-09-30: kebs.org is dead (their move); kebs.go.ke + qualityassurance.kebs.go.ke are live but the
+   S-mark register itself is gone from the public web — the QA portal's "Verify Products with S-Mark" page is
+   informational only, and the register app moved into **KIMS** (`kims.kebs.org`, Angular; API at
+   `kims.kebs.go.ke:8006/api/v1`, endpoints like `/smarkpermitdetails`), which answers **401 without login**.
+   Wayback only ever archived page 1 of the old register (≈10 rows), so no bulk corpus is recoverable. Next
+   realistic paths: ask KEBS for a bulk/registers feed (they publish such lists to trade desks), or piggyback
+   on KIMS if they expose a public verify endpoint. Do NOT re-scout from scratch — this is the full map.
 6. **Report-photo reuse** — with consent, attach community-report photos to register entries as field evidence
    (labelled as such, never presented as regulator imagery).
 
