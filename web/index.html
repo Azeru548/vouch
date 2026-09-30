@@ -114,10 +114,10 @@
           <input id="in-name" name="product_name" type="text" placeholder="e.g. Alben Paracetamol Drops" spellcheck="false" maxlength="200" required enterkeyhint="next">
         </div>
 
-        <div class="field">
-          <label for="in-batch">Batch / lot number <span class="optional">Optional — printed near the expiry date</span></label>
+        <div class="field hidden" id="batch-field">
+          <label for="in-batch">Batch / lot number <span class="required">Required in Kenya</span></label>
           <input id="in-batch" name="batch" type="text" placeholder="e.g. 6289 or WL25024" spellcheck="false" maxlength="64" aria-describedby="batch-help" inputmode="text" enterkeyhint="next">
-          <span id="batch-help" class="field-help">The batch code (also labelled LOT or B.No) is printed on every blister and label. If a recall exists for this product, the batch tells us whether your pack is on it.</span>
+          <span id="batch-help" class="field-help">PPB recalls are batch-specific, and the batch code (BATCH, LOT or B.No) is printed on every blister and label — often the only readable number on the pack.</span>
         </div>
 
         <div class="field">

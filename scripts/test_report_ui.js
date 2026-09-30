@@ -56,6 +56,8 @@ async function waitForResult(page) {
 async function verify(page, nafdac, productName) {
   await page.selectOption('#in-country', 'KE');
   await page.fill('#in-nafdac', nafdac);
+  // Batch is required for Kenya checks.
+  await page.fill('#in-batch', 'TEST123');
   await page.fill('#in-name', productName);
   await page.click('#verify-form button[type=submit]');
   await waitForResult(page);

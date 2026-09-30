@@ -122,11 +122,11 @@ date, the official source URL, auto-derived category (drug / food / cosmetic / d
   counterfeit food, drink and cosmetics.
 - **Appearance matching** (≥60, labelled "matched on looks") turns the pack description the vision model writes
   into a lead against the library's appearance text.
-- **Batch refinement** (optional input, also read from Kenyan photos) never widens matching — it grades an alert
-  already found by number or name into three tiers: `batch_matched` (near-definitive — your batch is on the
-  recall list), `batch_not_listed` (bounded reassurance — a clean batch never proves a pack genuine, since a
-  counterfeiter can print any batch), and `product_level` (no batch entered, or a whole-product recall). A batch
-  on its own matches nothing.
+- **Batch refinement** (required for Kenya, hidden for Nigeria — NAFDAC alerts almost never cite batches; also
+  read from Kenyan photos) never widens matching — it grades an alert already found by number or name into three
+  tiers: `batch_matched` (near-definitive — your batch is on the recall list), `batch_not_listed` (bounded
+  reassurance — a clean batch never proves a pack genuine, since a counterfeiter can print any batch), and
+  `product_level` (whole-product recalls, which list no batches). A batch on its own matches nothing.
 - **Country scoping** filters everything: `hazardMatch` and the suspect search only see rows for the country of
   the check, and a flag can never silently cross a border.
 
@@ -137,7 +137,7 @@ date, the official source URL, auto-derived category (drug / food / cosmetic / d
 | | 🇳🇬 Nigeria | 🇰🇪 Kenya |
 |---|---|---|
 | **Registry source** | NAFDAC Greenbook snapshot (8,980) | PPB registry snapshot (3,235; pharma-only by source) |
-| **Batch check** | Optional batch input refines recall hits | 111 of 137 KE alert entries carry batch lists — the compound name+batch check is Kenya-first |
+| **Batch check** | Hidden — NAFDAC alerts rarely cite batches (revisit if that changes) | **Required**: 111 of 137 KE alert entries carry batch lists — the compound name+batch check is Kenya-first |
 | **Alert source** | NAFDAC public alerts/recalls | PPB recalls & safety alerts |
 | **Alert corpus** | 403 entries (2013→) | 138 entries (2023→) |
 | **Matching scope** | `source_country = 'NG'` | `source_country = 'KE'` |

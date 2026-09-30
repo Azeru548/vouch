@@ -13,6 +13,7 @@ const els = {
   nafdac: $('#in-nafdac'),
   name: $('#in-name'),
   batch: $('#in-batch'),
+  batchField: $('#batch-field'),
   mfr: $('#in-mfr'),
   confirmHint: $('#confirm-hint'),
   result: $('#result'),
@@ -346,6 +347,19 @@ function setOcrStatus(html, warn = false) {
   els.ocrStatus.classList.toggle('warn', warn);
 }
 
+// The batch field is Kenya-only and compulsory there: PPB recalls are
+// batch-specific and the batch is usually the only readable number on a
+// Kenyan pack. NAFDAC alerts almost never cite batches, so Nigeria skips the
+// field entirely until that changes. Re-checked whenever the country flips.
+function setCountryState() {
+  const ke = els.country.value === 'KE';
+  els.batchField.classList.toggle('hidden', !ke);
+  els.batch.required = ke;
+  if (!ke) els.batch.value = '';
+}
+els.country.addEventListener('change', setCountryState);
+setCountryState();
+
 els.form.addEventListener('submit', (event) => {
   event.preventDefault();
   submitVerify();
@@ -361,6 +375,13 @@ async function submitVerify() {
   if (!els.form.reportValidity()) return;
   // The registration number is optional. With it we check the registry; without
   // it we only have the name and photos to compare against known fakes.
+  // Kenya: the batch is required. It is the one verifiable signal a shopper
+  // can read on a Kenyan pack, and 81% of our PPB alerts are batch-specific.
+  if (country === 'KE' && !batch) {
+    showLocalError('Enter the batch (LOT) number printed on the pack — PPB recalls are batch-specific, so it decides whether your pack is on one.');
+    els.batch.focus();
+    return;
+  }
   if (nafdac) {
     const validNumber = country === 'KE' ? PPB_RE.test(nafdac) : NAFDAC_RE.test(nafdac);
     if (!validNumber) {
