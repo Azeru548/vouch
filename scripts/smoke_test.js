@@ -91,6 +91,19 @@ async function waitForServer() {
       assert.equal(result.debug, undefined);
     }
 
+    const alertsResponse = await fetch(`${BASE}/api/alerts`);
+    assert.equal(alertsResponse.status, 200);
+    const alertsBody = await alertsResponse.json();
+    assert.ok(alertsBody.alerts.length >= 10, `known-fake library should be populated, saw ${alertsBody.alerts.length}`);
+
+    const pendingResponse = await fetch(`${BASE}/api/alerts/pending`);
+    assert.equal(pendingResponse.status, 200);
+    assert.ok(Array.isArray((await pendingResponse.json()).alerts));
+
+    const syncNoKey = await fetch(`${BASE}/api/alerts/sync`, { method: 'POST' });
+    assert.equal(syncNoKey.status, 503, 'sync without ADMIN_KEY must be disabled');
+    assert.equal((await syncNoKey.json()).error, 'admin_disabled');
+
     const cacheWrite = await fetch(`${BASE}/api/napams/cache`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -102,7 +115,7 @@ async function waitForServer() {
     assert.equal(cachedResult.status, 'verified');
     assert.equal(cachedResult.matched.source, 'napams_manual');
 
-    console.log(`${staticChecks.length} static checks, validation checks, ${verifyCases.length} verdict checks, and NAPAMS cache check passed`);
+    console.log(`${staticChecks.length} static checks, validation checks, ${verifyCases.length} verdict checks, alerts register + freshness endpoints, and NAPAMS cache check passed`);
   } finally {
     await stopServer(server);
     fs.rmSync(CACHE_PATH, { force: true });

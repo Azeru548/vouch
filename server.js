@@ -8,6 +8,10 @@ const { ensureReportsTable } = require('./scripts/reports_schema');
 const { ensureHazardTable } = require('./scripts/hazard_schema');
 const { ensureKnownFakesTable, parseJsonArray } = require('./scripts/fakes_schema');
 const { APPEARANCE_PROMPT, cleanAppearanceFields } = require('./scripts/fake_appearance');
+const { ensurePendingTable } = require('./scripts/pending_schema');
+const { runSync, guardLiveSummary } = require('./scripts/alert_sync');
+const { promotePending, dismissPending, PromoteError } = require('./scripts/promote_alert');
+const { timingSafeEqual } = require('node:crypto');
 
 const WEB_DIR = path.join(__dirname, 'web');
 const GROQ_KEY = process.env.GROQ_API_KEY || '';
@@ -20,6 +24,10 @@ if (!fs.existsSync(DB_PATH)) {
   throw new Error(`Database not found at ${DB_PATH}. Run npm run ingest or set DATABASE_PATH.`);
 }
 
+// Gates the freshness-pipeline write endpoints (sync / promote / dismiss).
+// Unset = those endpoints are disabled entirely; wrong key = 401.
+const ADMIN_KEY = process.env.ADMIN_KEY || '';
+
 const db = new DatabaseSync(DB_PATH, { readOnly: true });
 if (!db.prepare('PRAGMA table_info(products)').all().some((column) => column.name === 'country')) {
   throw new Error('Database schema is missing products.country. Run npm run migrate:country.');
@@ -28,6 +36,7 @@ const reportsDb = new DatabaseSync(DB_PATH);
 ensureReportsTable(reportsDb);
 ensureHazardTable(reportsDb);
 ensureKnownFakesTable(reportsDb);
+ensurePendingTable(reportsDb);
 const cacheDb = new DatabaseSync(CACHE_PATH);
 cacheDb.exec(`
   CREATE TABLE IF NOT EXISTS napams_cache (
@@ -730,6 +739,75 @@ app.get('/verify', (req, res) => {
   }
 
   res.json(payload);
+});
+
+// Freshness pipeline (stage 2): list alerts discovered on NAFDAC's feed that
+// no human has reviewed yet. Public by design — the register's "awaiting
+// review" section renders from this, and hiding unvetted official alerts would
+// serve nobody. Nothing here affects verification until promotion.
+app.get('/api/alerts/pending', (req, res) => {
+  const status = req.query.status === 'dismissed' ? 'dismissed' : 'new';
+  const limit = Math.min(Math.max(Number(req.query.limit) || 40, 1), 200);
+  const rows = reportsDb.prepare(
+    `SELECT id, title, source_url, alert_number, alert_date, alert_type, product_type, manufacturer, status, first_seen, last_seen
+     FROM pending_alerts WHERE status = ? ORDER BY alert_date DESC, id DESC LIMIT ?`
+  ).all(status, limit);
+  res.set('Cache-Control', 'no-cache');
+  res.json({ count: rows.length, alerts: rows });
+});
+
+// ---- Admin: freshness pipeline control ----
+// Gated on ADMIN_KEY (fail closed: absent key = disabled endpoints). The key
+// never gates read-only public data, only the actions that write.
+function requireAdmin(req, res) {
+  if (!ADMIN_KEY) {
+    res.status(503).json({ error: 'admin_disabled', detail: 'Set ADMIN_KEY on the server to manage the alerts pipeline.' });
+    return false;
+  }
+  const provided = req.get('x-admin-key');
+  const ok = typeof provided === 'string' && provided.length > 0 &&
+    provided.length === ADMIN_KEY.length && timingSafeEqual(Buffer.from(provided), Buffer.from(ADMIN_KEY));
+  if (!ok) res.status(401).json({ error: 'unauthorized', detail: 'A valid x-admin-key header is required.' });
+  return ok;
+}
+
+app.post('/api/alerts/sync', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  try {
+    const summary = guardLiveSummary(await runSync());
+    res.json({ ok: true, ...summary });
+  } catch (e) {
+    if (String(e.message || '').includes('Parsed 0 rows')) {
+      return res.status(502).json({ error: 'index_unparseable', detail: e.message });
+    }
+    res.status(502).json({ error: 'sync_failed', detail: 'NAFDAC alerts index could not be fetched or parsed.' });
+  }
+});
+
+app.post('/api/alerts/:id/promote', (req, res) => {
+  if (!requireAdmin(req, res) ) return;
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'invalid_id' });
+  try {
+    const result = promotePending(reportsDb, id, req.body || {});
+    res.json(result);
+  } catch (e) {
+    if (e instanceof PromoteError) return res.status(400).json({ error: 'invalid_promotion', detail: e.message });
+    throw e;
+  }
+});
+
+app.post('/api/alerts/:id/dismiss', (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'invalid_id' });
+  try {
+    const result = dismissPending(reportsDb, id);
+    res.json(result);
+  } catch (e) {
+    if (e instanceof PromoteError) return res.status(400).json({ error: 'not_found', detail: e.message });
+    throw e;
+  }
 });
 
 // Public listing of every product in the known-fake library. This backs the

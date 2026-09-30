@@ -61,9 +61,19 @@ Also a `manufacturers(id, name)` reference table (1,420 rows) scraped from `/man
 
 Retention is deliberate: the client downscales photos before sending and the server caps attachments at **900 KB**; coordinates are stored **rounded to 3 decimals** (~110 m) because the report is about a market, not a doorway; and a sweep at server start clears `photo_url` from real reports older than **180 days** (notes and rough locations stay — they are the safety signal).
 
-`/verify` adds `community_flag {flagged, report_count, reported_on, recent_locations}` when ≥3 reports in 30 days agree on the same pack. The key is the registration number when the check had one, otherwise the product name, compared with `fuzzball.token_set_ratio` at the same 85 bar used elsewhere — the name is only a grouping heuristic and never feeds a verdict. `reported_on` says which key was used. `GET /api/reports` exposes non-sensitive report data (no session IDs or photos). The report map and the standalone alerts feed page were both removed; hazard intel now surfaces only as the banner on check results (a proper blog with images plus push notifications is planned next).
+`/verify` adds `community_flag {flagged, report_count, reported_on, recent_locations}` when ≥3 reports in 30 days agree on the same pack. The key is the registration number when the check had one, otherwise the product name, compared with `fuzzball.token_set_ratio` at the same 85 bar used elsewhere — the name is only a grouping heuristic and never feeds a verdict. `reported_on` says which key was used. `GET /api/reports` exposes non-sensitive report data (no session IDs or photos). Hazard intel surfaces as the banner on check results and as the public register at `/alerts.html` (see `/api/alerts` below); push notifications remain unbuilt.
 
 `hazard_alerts` (same DB) holds 19 manually curated NAFDAC alerts — medicines plus food and cosmetic alerts: `alert_number, product_name, nafdac_number (nullable), batches (JSON), hazard, alert_type, manufacturer, source_url, alert_date, in_registry`. `/verify` runs two independent checks on every verdict: number-keyed match, plus fuzzy name match (≥85) against NULL-number rows so unregistered products like Menofix are caught. Hit responses carry `hazard {alert_number, hazard, alert_type, source_url, alert_date, batches}`; omitted otherwise. The hazard banner renders first, above verdict and community flag.
+
+### Freshness pipeline: discovery → review → promotion
+
+New NAFDAC alerts flow in automatically but **never touch verification until a human promotes them**. Three stages:
+
+1. **Discovery** — `scripts/alert_sync.js` (`npm run alerts:sync`) fetches `nafdac.gov.ng/category/recalls-and-alerts/`. As of Sept 2026 that page embeds the whole listing (403 rows back to 2013) server-side in one Ninja/Foo table — no pagination. The parser needs a browser-like `User-Agent` (bare fetches get 406). Every row (title, detail URL, date `19-Aug-26` → ISO, type, product type, manufacturer) not already in `hazard_alerts`/`pending_alerts` (matched on `source_url`) imports as `pending_alerts.status='new'`. Sync is idempotent. A live fetch that parses to 0 rows throws (`index_unparseable`) instead of reporting a clean no-op.
+2. **Review** — pending rows surface publicly in the register's "Newly seen on NAFDAC's alert feed" section (`/api/alerts/pending`, max 12 by default, `?pending=all` for all) and via `npm run alerts:promote -- --show <id>`. Dismissal (`--dismiss`) keeps the row as `status='dismissed'` so future syncs never re-surface it — for advisory notices and foreign regulators' routine recalls.
+3. **Promotion** — `npm run alerts:promote -- <id> --name "…" --category drug [--hazard --aliases --appearance --nafdac --batches --brand]` writes into **both** `hazard_alerts` and `known_fakes` in one transaction and deletes the pending row. Guard: an alert number already curated from a *different* URL (NAFDAC "Updated …" re-posts) is refused, not silently overwritten. Photos stay empty until the official alert-page images are added by hand.
+
+Server control: `POST /api/alerts/sync|:id/promote|:id/dismiss` are gated by the **`ADMIN_KEY`** env var (unset = endpoints disabled with 503; wrong `x-admin-key` header = 401). `guardLiveSummary` also wraps the endpoint path. `scripts/fixtures/nafdac_alerts_index.html` is a trimmed snapshot of the live listing used by `test:alert-sync` — refresh it (save the page's listing table) when NAFDAC redesigns and the parser starts failing.
 
 `known_fakes` (same DB) is the **known-fake reference library**, and it is a different thing from `hazard_alerts`. It exists so a pack can be flagged when there is **no registration number to check at all** — the normal case for unregistered food, drinks and cosmetics. Columns: the alert facts (`alert_number UNIQUE, product_name, nafdac_number, batches, hazard, source_url, photos_json`) plus the library metadata (`category` in drug/food/cosmetic/device/chemical/other, `brand_name`, `aliases` JSON, `appearance`). Built by `seed:fakes`, which takes the alert facts from `hazard_alerts` and layers the metadata on top, so the two cannot drift.
 
@@ -116,7 +126,8 @@ Key gotchas learned the hard way:
 - **Asking the model for less produced better results.** When the prompt also requested a product name, the model returned wrong numbers (`B-102886`, `8-102886`) and garbage names (`"SOTL"`). With name extraction removed it reads the number correctly: `AB-102886`.
 - The regex only validates *shape*, not correctness. A wrong-but-well-formed number will pass and land on `not_found`. That's the intended safety net, not a silent bad verification.
 - `GET /api/config` reports whether vision is enabled so the UI can show a banner.
-- `GET /api/alerts` serves the whole known-fake library (parsed arrays, ordered by alert number) for the public register at **`/alerts.html`** — a standalone blog-style page with filters, search and NAFDAC reference photos. It lives in the SW shell cache; bump `CACHE` when touching `alerts.js`/`alerts.html`.
+- `GET /api/alerts` serves the whole known-fake library (parsed arrays, ordered by alert number) for the public register at **`/alerts.html`** — a standalone blog-style page with filters, search and NAFDAC reference photos, plus the "awaiting review" pending section fed by the freshness sync. It lives in the SW shell cache; bump `CACHE` when touching `alerts.js`/`alerts.html`.
+- `GET /api/alerts/pending?status=new|dismissed&limit=n` lists unreviewed sync discoveries. `POST /api/alerts/sync`, `/api/alerts/:id/promote`, `/api/alerts/:id/dismiss` are admin-gated (see freshness pipeline above).
 
 ## NAPAMS handoff and local cache
 
@@ -146,6 +157,10 @@ npm.cmd run test:hazards             # hazard matching + banner ordering (temp D
 npm.cmd run test:fakes               # known-fake library schema, matching, lead UI (temp DB)
 npm.cmd run seed:hazards             # 19 curated NAFDAC alerts; modifies the configured DB
 npm.cmd run seed:fakes               # rebuild the known-fake library; downloads photos unless SKIP_PHOTO_DOWNLOAD=true
+npm.cmd run alerts:sync              # fetch NAFDAC's alerts index, import unseen alerts as pending (modifies DB)
+npm.cmd run alerts:sync:test         # same, but parses the committed fixture — no network
+npm.cmd run alerts:promote           # promote/dismiss/show a pending alert (see freshness pipeline section)
+npm.cmd run test:alert-sync          # parser + lifecycle tests on a throwaway DB copy, no network
 npm.cmd run enrich:fake-appearance   # derive appearance text for library photos via vision (needs GROQ_API_KEY)
 npm.cmd run ingest                   # re-pull Greenbook (destructive: recreates the DB)
 npm.cmd run enrich:manufacturers     # refresh manufacturer names in the shared DB
