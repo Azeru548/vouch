@@ -19,8 +19,14 @@ const errorEl = document.getElementById('alerts-error');
 const searchInput = document.getElementById('alerts-search-input');
 const filterChips = [...document.querySelectorAll('.filter-chip')];
 
+const AUTHORITY_LABELS = {
+  NG: 'NAFDAC (Nigeria)',
+  KE: 'PPB — Pharmacy and Poisons Board (Kenya)',
+};
+
 let alerts = [];
 let filter = 'all';
+let country = 'all';
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (character) => ({
@@ -38,6 +44,7 @@ function alertCard(alert) {
   const aliases = Array.isArray(alert.aliases) ? alert.aliases : [];
   const batches = Array.isArray(alert.batches) ? alert.batches : [];
   const category = CATEGORY_LABELS[alert.category] || CATEGORY_LABELS.other;
+  const source = AUTHORITY_LABELS[alert.source_country] || AUTHORITY_LABELS.NG;
   const number = alert.nafdac_number
     ? `<span class="alert-meta-item"><span class="k">Registration</span> ${escapeHtml(alert.nafdac_number)}</span>`
     : '';
@@ -50,19 +57,21 @@ function alertCard(alert) {
   const appearance = alert.appearance
     ? `<p class="alert-appearance"><span class="k">What to look for</span> ${escapeHtml(alert.appearance)}</p>`
     : '';
+  const short = alert.source_country === 'KE' ? 'PPB' : 'NAFDAC';
   const photoBlock = photos.length > 0
     ? `<div class="alert-photos">
-        ${photos.map((src) => `<figure><img src="${escapeHtml(src)}" alt="Official NAFDAC photo of the flagged ${escapeHtml(alert.product_name)}" loading="lazy"><figcaption>NAFDAC reference photo</figcaption></figure>`).join('')}
+        ${photos.map((src) => `<figure><img src="${escapeHtml(src)}" alt="Official ${escapeHtml(short)} photo of the flagged ${escapeHtml(alert.product_name)}" loading="lazy"><figcaption>${escapeHtml(short)} reference photo</figcaption></figure>`).join('')}
       </div>`
     : '<p class="alert-no-photo">No official photo exists for this alert — compare using the written description above.</p>';
 
-  return `<article class="alert-entry" data-category="${escapeHtml(alert.category || 'other')}">
+  return `<article class="alert-entry" data-category="${escapeHtml(alert.category || 'other')}" data-country="${escapeHtml(alert.source_country || 'NG')}">
     <div class="alert-entry-head">
       <span class="alert-chip">${escapeHtml(category)}</span>
-      <span class="alert-number">Alert ${escapeHtml(alert.alert_number)}</span>
+      <span class="alert-chip alert-source-chip">${escapeHtml(source)}</span>
+      <span class="alert-number">${escapeHtml(alert.alert_number)}</span>
     </div>
     <h2>${escapeHtml(alert.product_name)}</h2>
-    <p class="alert-hazard">${escapeHtml(alert.hazard || 'Flagged in a NAFDAC public alert.')}</p>
+    <p class="alert-hazard">${escapeHtml(alert.hazard || `Flagged in an official ${escapeHtml(short)} alert.`)}</p>
     ${aliasLine}
     <div class="alert-meta">
       ${number}
@@ -70,7 +79,7 @@ function alertCard(alert) {
     </div>
     ${appearance}
     ${photoBlock}
-    <a class="alert-source" href="${escapeHtml(alert.source_url)}" target="_blank" rel="noopener">Read the official NAFDAC alert ↗</a>
+    <a class="alert-source" href="${escapeHtml(alert.source_url)}" target="_blank" rel="noopener">Read the official ${escapeHtml(short)} alert ↗</a>
   </article>`;
 }
 
@@ -78,6 +87,7 @@ function applyFilters() {
   const term = searchInput.value.trim().toLowerCase();
   const visible = alerts.filter((alert) => {
     if (filter !== 'all' && (alert.category || 'other') !== filter) return false;
+    if (country !== 'all' && (alert.source_country || 'NG') !== country) return false;
     if (!term) return true;
     const haystack = [
       alert.product_name,
@@ -96,17 +106,26 @@ function applyFilters() {
     : `${visible.length} of ${alerts.length} flagged products shown`;
 }
 
-filterChips.forEach((chip) => {
-  chip.addEventListener('click', () => {
-    filter = chip.dataset.filter;
-    filterChips.forEach((other) => {
-      const active = other === chip;
-      other.classList.toggle('selected', active);
-      other.setAttribute('aria-pressed', String(active));
+// Two chip groups: category and source country. They filter independently.
+const categoryChips = filterChips.filter((chip) => !chip.classList.contains('country-chip'));
+const countryChips = filterChips.filter((chip) => chip.classList.contains('country-chip'));
+
+function wireChips(chips, apply) {
+  chips.forEach((chip) => {
+    chip.addEventListener('click', () => {
+      apply(chip);
+      chips.forEach((other) => {
+        const active = other === chip;
+        other.classList.toggle('selected', active);
+        other.setAttribute('aria-pressed', String(active));
+      });
+      applyFilters();
     });
-    applyFilters();
   });
-});
+}
+
+wireChips(categoryChips, (chip) => { filter = chip.dataset.filter; });
+wireChips(countryChips, (chip) => { country = chip.dataset.country; });
 
 searchInput.addEventListener('input', applyFilters);
 
@@ -116,7 +135,9 @@ searchInput.addEventListener('input', applyFilters);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const body = await response.json();
     alerts = body.alerts || [];
-    updatedEl.textContent = `Library synced from NAFDAC public alerts · ${alerts.length} entries`;
+    const ng = alerts.filter((a) => (a.source_country || 'NG') === 'NG').length;
+    const ke = alerts.length - ng;
+    updatedEl.textContent = `Synced from official regulator alerts · ${ng} NAFDAC (Nigeria)${ke > 0 ? ` · ${ke} PPB (Kenya)` : ''} · ${alerts.length} entries`;
   } catch (error) {
     errorEl.textContent = 'The register could not be loaded. Refresh the page to try again.';
     errorEl.classList.remove('hidden');

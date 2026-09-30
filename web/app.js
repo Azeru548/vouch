@@ -504,15 +504,25 @@ function paint(result, input) {
   }
 }
 
+// 'NAFDAC' or 'PPB' — the short badge form for tight UI spots.
+function authorityShort(sourceCountry) {
+  return sourceCountry === 'KE' ? 'PPB' : 'NAFDAC';
+}
+
+function authorityFull(sourceCountry) {
+  return sourceCountry === 'KE' ? 'Pharmacy and Poisons Board (PPB), Kenya' : 'NAFDAC, Nigeria';
+}
+
 function hazardBanner(hazard) {
   const batches = Array.isArray(hazard.batches) && hazard.batches.length > 0
     ? hazard.batches.map(escapeHtml).join(', ')
     : 'see alert for details';
   const type = hazard.alert_type === 'recall' ? 'Recall' : 'Safety alert';
+  const short = authorityShort(hazard.source_country);
   return `<div class="hazard-alert" role="alert">
-    <strong>NAFDAC ${escapeHtml(type)} No. ${escapeHtml(hazard.alert_number)}</strong>
+    <strong>${escapeHtml(short)} ${escapeHtml(type)}${hazard.alert_number ? ` No. ${escapeHtml(hazard.alert_number)}` : ''}</strong>
     <span>${escapeHtml(hazard.hazard)}</span>
-    <span>Batches: ${batches} · Issued ${escapeHtml(hazard.alert_date)} · <a href="${escapeHtml(hazard.source_url)}" target="_blank" rel="noopener">Official alert</a></span>
+    <span>Source: ${escapeHtml(authorityFull(hazard.source_country))} · Batches: ${batches} · Issued ${escapeHtml(hazard.alert_date)} · <a href="${escapeHtml(hazard.source_url)}" target="_blank" rel="noopener">Official alert</a></span>
   </div>`;
 }
 
@@ -521,9 +531,10 @@ function comparePanel(hazard) {
   const userCaption = photos.length > 1 ? `Your photo (1 of ${photos.length})` : 'Your photo';
   const refs = Array.isArray(hazard.photos) ? hazard.photos.slice(0, 2) : [];
   if (!userPhoto || refs.length === 0) return '';
+  const authority = hazard.authority || authorityShort(hazard.source_country);
   return `<section class="compare-panel" aria-label="Compare your pack with the flagged pack">
     <h3>Compare these two packs</h3>
-    <p>Left: your photo. Right: NAFDAC's photo of the flagged product. Check the seal, print, colours, and spelling — fakes often differ in small details.</p>
+    <p>Left: your photo. Right: ${escapeHtml(authority)}'s photo of the flagged product. Check the seal, print, colours, and spelling — fakes often differ in small details.</p>
     <div class="compare-grid">
       <figure><img src="${escapeHtml(userPhoto)}" alt="Your product photo"><figcaption>${escapeHtml(userCaption)}</figcaption></figure>
       <figure>${refs.map((src) => `<img src="${escapeHtml(src)}" alt="Official photo of the flagged product" loading="lazy">`).join('')}<figcaption>Official flagged pack</figcaption></figure>
@@ -546,6 +557,7 @@ function suspectsPanel(suspects) {
   const cards = suspects.map((suspect) => {
     const photo = Array.isArray(suspect.photos) ? suspect.photos[0] : null;
     const category = CATEGORY_LABELS[suspect.category] || CATEGORY_LABELS.other;
+    const short = authorityShort(suspect.source_country);
     const batches = Array.isArray(suspect.batches) && suspect.batches.length > 0
       ? `Batches ${suspect.batches.map(escapeHtml).join(', ')}`
       : 'No batch listed';
@@ -556,17 +568,18 @@ function suspectsPanel(suspects) {
       ${photo ? `<img src="${escapeHtml(photo)}" alt="Official photo of the flagged product" loading="lazy">` : ''}
       <div class="suspect-body">
         <span class="suspect-cat">${escapeHtml(category)}</span>
+        <span class="suspect-cat suspect-src">${escapeHtml(short)}</span>
         <strong>${escapeHtml(suspect.product_name)}</strong>
         <p>${escapeHtml(suspect.hazard)}</p>
         <p class="suspect-why">${why} · ${Math.max(0, Math.min(100, Math.round(suspect.score)))}% similarity</p>
-        <p class="suspect-meta">${batches} · <a href="${escapeHtml(suspect.source_url)}" target="_blank" rel="noopener">NAFDAC alert ${escapeHtml(suspect.alert_number)}</a></p>
+        <p class="suspect-meta">${batches} · <a href="${escapeHtml(suspect.source_url)}" target="_blank" rel="noopener">${escapeHtml(short)} alert ${escapeHtml(suspect.alert_number)}</a></p>
       </div>
     </li>`;
   }).join('');
 
   return `<section class="suspect-panel" aria-labelledby="suspect-title">
-    <h3 id="suspect-title">Possible match in our known-fake library</h3>
-    <p>These are leads from NAFDAC alerts on counterfeit and unregistered products, matched on the name you typed and any photos you attached. They are not a finding — compare the pack by hand before you decide.</p>
+    <h3 id="suspect-title">Possible match in our flagged-products library</h3>
+    <p>These are leads from official regulator alerts — NAFDAC (Nigeria) and the Pharmacy and Poisons Board (Kenya) — matched on the name you typed and any photos you attached. Each lead says which regulator flagged it. They are not a finding — compare the pack by hand before you decide.</p>
     <ul class="suspect-list">${cards}</ul>
     <p class="suspect-more">The full register of flagged products, with every reference photo, lives on the <a href="/alerts.html">Flagged products page</a>.</p>
   </section>`;
@@ -804,7 +817,7 @@ function reportVerdictStrip(result) {
   const notes = [];
   if (result.hazard) {
     const type = result.hazard.alert_type === 'recall' ? 'recall' : 'safety alert';
-    notes.push(`NAFDAC has an active ${type} on this product${result.hazard.alert_number ? ` (${result.hazard.alert_number})` : ''}`);
+    notes.push(`${result.hazard.authority || authorityShort(result.hazard.source_country)} has an active ${type} on this product${result.hazard.alert_number ? ` (${result.hazard.alert_number})` : ''}`);
   }
   if (result.community_flag?.flagged) {
     notes.push(`${result.community_flag.report_count} community reports in the last 30 days`);

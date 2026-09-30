@@ -91,7 +91,7 @@ async function waitForServer() {
       assert.equal(result.debug, undefined);
     }
 
-    const alertsResponse = await fetch(`${BASE}/api/alerts`);
+    const alertsResponse = await fetch(`${BASE}/api/alerts?country=NG`);
     assert.equal(alertsResponse.status, 200);
     const alertsBody = await alertsResponse.json();
     assert.ok(alertsBody.alerts.length >= 10, `known-fake library should be populated, saw ${alertsBody.alerts.length}`);

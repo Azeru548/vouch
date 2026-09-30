@@ -15,6 +15,7 @@
     "seed:fakes": "node scripts/seed_fakes.js",
     "alerts:sync": "node scripts/alert_sync.js",
     "alerts:sync:test": "node scripts/alert_sync.js --fixture",
+    "ppb:sync": "node scripts/ppb_sync.js",
     "enrich:manufacturers": "node scripts/enrich_manufacturers.js",
     "enrich:fake-appearance": "node scripts/enrich_fake_appearance.js",
     "test:extract": "node scripts/test_extract.js",
@@ -23,6 +24,7 @@
     "test:hazards": "node scripts/test_hazards.js",
     "test:fakes": "node scripts/test_fakes.js",
     "test:alert-sync": "node scripts/test_alert_sync.js",
+    "test:ppb-sync": "node scripts/test_ppb_sync.js",
     "test:report-ui": "node scripts/test_report_ui.js",
     "test:e2e": "node scripts/e2e_flow.js"
   },

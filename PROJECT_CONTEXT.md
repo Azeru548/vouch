@@ -63,7 +63,7 @@ Retention is deliberate: the client downscales photos before sending and the ser
 
 `/verify` adds `community_flag {flagged, report_count, reported_on, recent_locations}` when ≥3 reports in 30 days agree on the same pack. The key is the registration number when the check had one, otherwise the product name, compared with `fuzzball.token_set_ratio` at the same 85 bar used elsewhere — the name is only a grouping heuristic and never feeds a verdict. `reported_on` says which key was used. `GET /api/reports` exposes non-sensitive report data (no session IDs or photos). Hazard intel surfaces as the banner on check results and as the public register at `/alerts.html` (see `/api/alerts` below); push notifications remain unbuilt.
 
-`hazard_alerts` (same DB) holds every NAFDAC alert the freshness sync has imported (~400, back to 2013); the 19 hand-curated ones carry the detail (numbers, batches, typed hazard text): `alert_number, product_name, nafdac_number (nullable), batches (JSON), hazard, alert_type, manufacturer, source_url, alert_date, in_registry`. `/verify` runs two independent checks on every verdict: number-keyed match, plus fuzzy name match (≥85) against NULL-number rows so unregistered products like Menofix are caught. Hit responses carry `hazard {alert_number, hazard, alert_type, source_url, alert_date, batches}`; omitted otherwise. The hazard banner renders first, above verdict and community flag.
+`hazard_alerts` (same DB) holds every regulator alert the freshness syncs have imported (~400 NAFDAC back to 2013 + ~140 PPB Kenya from 2023 on); the 19 hand-curated NAFDAC ones carry the detail (numbers, batches, typed hazard text): `alert_number, product_name, nafdac_number (nullable), batches (JSON), hazard, alert_type, manufacturer, source_url, alert_date, in_registry, source_country ('NG'|'KE', legacy rows default NG)`. `/verify` runs two independent checks on every verdict: number-keyed match, plus fuzzy name match (≥85) against NULL-number rows so unregistered products like Menofix are caught. Hit responses carry `hazard {alert_number, hazard, alert_type, source_url, alert_date, batches}`; omitted otherwise. The hazard banner renders first, above verdict and community flag.
 
 ### Freshness pipeline: direct import, no review stage
 
@@ -78,7 +78,15 @@ New NAFDAC alerts join the register and the matching library **directly**. There
 
 Server control: `POST /api/alerts/sync` (gated by the **`ADMIN_KEY`** env var — unset = 503 disabled, wrong `x-admin-key` header = 401) exists only so the sync can be triggered remotely on hosts without cron. `scripts/fixtures/nafdac_alerts_index.html` is a trimmed snapshot of the live listing used by `test:alert-sync` — refresh it (save the page's listing table) when NAFDAC redesigns and the parser starts failing.
 
-`known_fakes` (same DB) is the **known-fake reference library**, and it is a different thing from `hazard_alerts`. It exists so a pack can be flagged when there is **no registration number to check at all** — the normal case for unregistered food, drinks and cosmetics. Columns: the alert facts (`alert_number UNIQUE, product_name, nafdac_number, batches, hazard, source_url, photos_json`) plus the library metadata (`category` in drug/food/cosmetic/device/chemical/other, `brand_name`, `aliases` JSON, `appearance`). The 17 hand-curated rows are built by `seed:fakes` (which takes alert facts from `hazard_alerts` and layers metadata on top); the freshness sync adds every other NAFDAC alert with auto-derived metadata. Both writers insert into both tables — never only one.
+### Kenya PPB alerts (`npm run ppb:sync`, test:ppb-sync)
+
+`scripts/ppb_sync.js` imports Kenya's Pharmacy and Poisons Board alerts with `source_country='KE'`, same twin-table writer as NAFDAC's sync:
+
+- **Sources** (old `web.pharmacyboardkenya.org` — the new `ppb.go.ke` is a JS-rendered SPA with no parseable server HTML): per-year recall tables `/products-recalled-2026|2025|2024/` + `/product-recall-2023/` (9 structured columns: S/N, date, `REC/YYYY/NNN` reference, product, INN, batches, manufacturer, reason, status; a real data row always has a numeric S/N — that filters header rows), plus `/safety-alerts/` (date + title + `/download/` PDF links). Year pages before 2023 don't exist.
+- **Naming**: recall rows use the `REC/...` reference as `alert_number`; safety alerts get `ppb-<slug>`. INN is stored as an alias so generic-name checks match. Alert number collisions (PPB reuses references across years) are skipped, never merged.
+- **Country scoping is the integrity rule**: `hazardMatch()` and `knownFakeSuspects()` filter `source_country = country-of-check`, and `/api/alerts?country=NG|KE` filters the register. A Kenyan check can only ever be flagged by PPB, a Nigerian check only by NAFDAC — no cross-authority contamination. Every payload carries `source_country` + `authority` ('NAFDAC' / 'Pharmacy and Poisons Board (PPB)'), and the UI prints the authority on the hazard banner, suspect leads, compare captions, and the report modal's note.
+
+`known_fakes` (same DB) is the **known-fake reference library**, and it is a different thing from `hazard_alerts`. It exists so a pack can be flagged when there is **no registration number to check at all** — the normal case for unregistered food, drinks and cosmetics. Columns: the alert facts (`alert_number UNIQUE, product_name, nafdac_number, batches, hazard, source_url, photos_json`) plus the library metadata (`category` in drug/food/cosmetic/device/chemical/other, `brand_name`, `aliases` JSON, `appearance`). The 17 hand-curated rows are built by `seed:fakes` (which takes alert facts from `hazard_alerts` and layers metadata on top); the freshness syncs add every other NAFDAC and PPB Kenya alert with auto-derived metadata. Both writers insert into both tables — never only one. Matching and register listings are scoped by `source_country` (see the Kenya section below).
 
 Two things worth knowing before touching it:
 
@@ -161,7 +169,9 @@ npm.cmd run seed:hazards             # 19 curated NAFDAC alerts; modifies the co
 npm.cmd run seed:fakes               # rebuild the known-fake library; downloads photos unless SKIP_PHOTO_DOWNLOAD=true
 npm.cmd run alerts:sync              # fetch NAFDAC's alerts index, import unseen alerts straight into the register (modifies DB)
 npm.cmd run alerts:sync:test         # same, but parses the committed fixture — no network
-npm.cmd run test:alert-sync          # parser + import lifecycle tests on a throwaway DB copy, no network
+npm.cmd run ppb:sync                 # fetch Kenya PPB recall tables + safety alerts, import with source_country=KE
+npm.cmd run test:alert-sync          # NAFDAC parser + import lifecycle tests on a throwaway DB copy, no network
+npm.cmd run test:ppb-sync            # PPB parser + import lifecycle tests on a throwaway DB copy, no network
 npm.cmd run enrich:fake-appearance   # derive appearance text for library photos via vision (needs GROQ_API_KEY)
 npm.cmd run ingest                   # re-pull Greenbook (destructive: recreates the DB)
 npm.cmd run enrich:manufacturers     # refresh manufacturer names in the shared DB

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#23215f">
-  <meta name="description" content="Vouch's public register of flagged products: NAFDAC safety alerts, recalls and known counterfeit or unregistered packs, with official reference photos.">
+  <meta name="description" content="Vouch's public register of flagged products: official NAFDAC (Nigeria) and PPB (Kenya) safety alerts, recalls and known counterfeit or unregistered packs, with official reference photos.">
   <title>Vouch Alerts — Flagged products register</title>
   <link rel="stylesheet" href="/styles.css">
   <link rel="icon" type="image/svg+xml" href="/icons/seal.svg">
@@ -27,11 +27,13 @@
       <p class="alerts-stamp" aria-hidden="true">OFFICIAL RECORD</p>
       <h1>Flagged products register</h1>
       <p class="alerts-intro">
-        Every product below is drawn from public NAFDAC safety alerts and recalls —
+        Every product below is drawn from official regulator alerts and recalls —
+        NAFDAC (Nigeria) and the Pharmacy and Poisons Board (Kenya) — covering
         counterfeit, substandard or unregistered packs that should not be on sale.
-        It is the same reference library the Vouch check matches against. Photos,
-        where shown, are NAFDAC's own images of the flagged packs. <strong>This page
-        is informational and is not affiliated with NAFDAC.</strong>
+        Each entry names the authority that flagged it. It is the same reference
+        library the Vouch check matches against. Photos, where shown, are the
+        regulator's own images of the flagged packs. <strong>This page is
+        informational and is not affiliated with NAFDAC or PPB.</strong>
       </p>
       <p id="alerts-updated" class="alerts-updated" role="status"></p>
     </div>
@@ -45,6 +47,11 @@
         <button type="button" class="chip filter-chip" data-filter="food" aria-pressed="false">Food &amp; drink</button>
         <button type="button" class="chip filter-chip" data-filter="cosmetic" aria-pressed="false">Cosmetics</button>
         <button type="button" class="chip filter-chip" data-filter="device" aria-pressed="false">Devices</button>
+      </div>
+      <div class="alerts-filters" role="group" aria-label="Filter by source country">
+        <button type="button" class="chip filter-chip country-chip selected" data-country="all" aria-pressed="true">All sources</button>
+        <button type="button" class="chip filter-chip country-chip" data-country="NG" aria-pressed="false">🇳🇬 NAFDAC (Nigeria)</button>
+        <button type="button" class="chip filter-chip country-chip" data-country="KE" aria-pressed="false">🇰🇪 PPB (Kenya)</button>
       </div>
       <label class="alerts-search">
         <span class="sr-only">Search flagged products</span>
@@ -60,7 +67,7 @@
 
     <aside class="alerts-footnote">
       <p>
-        <strong>How this list works.</strong> Entries are matched from NAFDAC's published
+        <strong>How this list works.</strong> Entries are matched from the regulators' published
         alerts; the photos are the official images from those alert pages. A pack that
         looks like one of these is not automatically fake — compare it by hand, check the
         registration number with the

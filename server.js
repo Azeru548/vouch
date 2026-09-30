@@ -266,6 +266,8 @@ function isPlainObject(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+const AUTHORITY_NAMES = { NG: 'NAFDAC', KE: 'Pharmacy and Poisons Board (PPB)' };
+
 function toHazard(row) {
   let batches = [];
   try {
@@ -286,18 +288,20 @@ function toHazard(row) {
     alert_date: row.alert_date,
     batches,
     photos,
+    source_country: row.source_country || 'NG',
+    authority: AUTHORITY_NAMES[row.source_country || 'NG'] || 'NAFDAC',
   };
 }
 
-function hazardMatch(nafdacNumber, normalizedName) {
+function hazardMatch(nafdacNumber, normalizedName, country = 'NG') {
   const numbered = reportsDb.prepare(
-    'SELECT alert_number, hazard, alert_type, source_url, alert_date, batches FROM hazard_alerts WHERE nafdac_number = ? COLLATE NOCASE LIMIT 1'
-  ).get(nafdacNumber);
+    'SELECT alert_number, hazard, alert_type, source_url, alert_date, batches, source_country FROM hazard_alerts WHERE nafdac_number = ? COLLATE NOCASE AND source_country = ? LIMIT 1'
+  ).get(nafdacNumber, country);
   if (numbered) return toHazard(numbered);
   if (!normalizedName) return undefined;
   const unnamed = reportsDb.prepare(
-    'SELECT alert_number, product_name, hazard, alert_type, source_url, alert_date, batches FROM hazard_alerts WHERE nafdac_number IS NULL'
-  ).all();
+    'SELECT alert_number, product_name, hazard, alert_type, source_url, alert_date, batches, source_country FROM hazard_alerts WHERE nafdac_number IS NULL AND source_country = ?'
+  ).all(country);
   let best = null;
   for (const row of unnamed) {
     const score = fuzz.token_set_ratio(normalizedName, normalizeProductName(row.product_name));
@@ -527,8 +531,8 @@ const selectNapamsCache = cacheDb.prepare(
 );
 const selectKnownFakes = reportsDb.prepare(
   `SELECT alert_number, product_name, nafdac_number, category, brand_name, aliases, appearance,
-          hazard, batches, source_url, photos_json
-   FROM known_fakes`
+          hazard, batches, source_url, photos_json, source_country
+   FROM known_fakes WHERE source_country = ?`
 );
 
 // Threat-intel fallback against the known-fake library, for packs that have no
@@ -557,10 +561,10 @@ function toFakeCandidate(row) {
   };
 }
 
-function knownFakeSuspects(normName, normAppearance) {
+function knownFakeSuspects(normName, normAppearance, country = 'NG') {
   if (!normName && !normAppearance) return [];
   const scored = [];
-  for (const row of selectKnownFakes.all()) {
+  for (const row of selectKnownFakes.all(country)) {
     const names = [row.product_name, row.brand_name, ...parseJsonArray(row.aliases)].filter(Boolean);
     const nameScore = normName
       ? Math.max(...names.map((name) => fuzz.token_set_ratio(normName, normalizeProductName(name))))
@@ -575,6 +579,8 @@ function knownFakeSuspects(normName, normAppearance) {
       appearance_score: appearanceScore || null,
       score: Math.round(Math.max(nameScore, appearanceScore)),
       matched_on: appearanceScore > nameScore ? 'appearance' : 'name',
+      source_country: row.source_country || 'NG',
+      authority: AUTHORITY_NAMES[row.source_country || 'NG'] || 'NAFDAC',
     });
   }
   return scored
@@ -618,9 +624,9 @@ app.get('/verify', (req, res) => {
   const flag = communityFlag(normalizedNafdac, product_name, country);
   const normManu = manufacturer != null ? normalizeProductName(manufacturer) : null;
   const normAppearance = appearanceParam ? normalizeProductName(appearanceParam) : null;
-  const hazard = hazardMatch(normalizedNafdac, normName);
+  const hazard = hazardMatch(normalizedNafdac, normName, country);
   if (rows.length === 0) {
-    const suspects = knownFakeSuspects(normName, normAppearance);
+    const suspects = knownFakeSuspects(normName, normAppearance, country);
     return res.json({
       status: 'not_found',
       nafdac: hasNumber ? nafdac : null,
@@ -731,7 +737,7 @@ app.get('/verify', (req, res) => {
   // Only attach library leads when the registry could NOT confirm the pack.
   // A confirmed registration is never second-guessed by this list.
   if (status === 'not_found' || status === 'mismatch') {
-    const suspects = knownFakeSuspects(normName, normAppearance);
+    const suspects = knownFakeSuspects(normName, normAppearance, country);
     if (suspects.length > 0) payload.suspects = suspects;
   }
 
@@ -772,11 +778,14 @@ app.post('/api/alerts/sync', async (req, res) => {
 // standalone alerts page — a plain, referenceable register of the flagged
 // products the app matches against, with NAFDAC's own photos where they exist.
 app.get('/api/alerts', (req, res) => {
+  const country = req.query.country === 'KE' ? 'KE' : (req.query.country === 'NG' ? 'NG' : null);
   const rows = reportsDb.prepare(
     `SELECT alert_number, product_name, nafdac_number, batches, hazard, category,
-            brand_name, aliases, appearance, source_url, photos_json
-     FROM known_fakes ORDER BY alert_number DESC`
-  ).all();
+            brand_name, aliases, appearance, source_url, photos_json, source_country
+     FROM known_fakes
+     ${country ? 'WHERE source_country = ?' : ''}
+     ORDER BY source_country ASC, alert_number DESC`
+  ).all(...(country ? [country] : []));
   res.set('Cache-Control', 'no-cache');
   res.json({
     count: rows.length,
@@ -792,6 +801,8 @@ app.get('/api/alerts', (req, res) => {
       appearance: row.appearance,
       source_url: row.source_url,
       photos: parseJsonArray(row.photos_json),
+      source_country: row.source_country || 'NG',
+      authority: AUTHORITY_NAMES[row.source_country || 'NG'] || 'NAFDAC',
     })),
   });
 });

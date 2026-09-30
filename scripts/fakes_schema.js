@@ -35,9 +35,12 @@ function ensureKnownFakesTable(db) {
   addColumn('brand_name', 'TEXT');
   addColumn('aliases', "TEXT NOT NULL DEFAULT '[]'");
   addColumn('appearance', 'TEXT');
+  // Rows written before the multi-country syncs existed are NAFDAC rows.
+  addColumn('source_country', "TEXT NOT NULL DEFAULT 'NG'");
 
   db.exec('CREATE INDEX IF NOT EXISTS idx_known_fakes_category ON known_fakes (category)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_known_fakes_name ON known_fakes (product_name COLLATE NOCASE)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_known_fakes_country ON known_fakes (source_country)');
 }
 
 function parseJsonArray(value) {

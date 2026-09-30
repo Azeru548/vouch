@@ -1766,3 +1766,22 @@ html.modal-open { overflow: hidden; }
   color: var(--danger);
   font-weight: 700;
 }
+/* ---- Source-country chip on register entries and the country filter ---- */
+/* Every entry names the authority that flagged it; the filter group narrows
+   by regulator. Same chip language as the category chips. */
+.alert-source-chip {
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  color: var(--ink-soft);
+}
+
+.suspect-src {
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  color: var(--ink-soft);
+  margin-left: 0.35rem;
+}
+
+.country-chip {
+  border-style: dashed;
+}

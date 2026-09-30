@@ -124,13 +124,16 @@ async function verify(page, nafdac, productName) {
 
     // A check with no registration number is reportable too, and the modal
     // shows NAFDAC's own photo of the flagged pack when the library has one.
+    await page.selectOption('#in-country', 'NG');
     await page.fill('#in-nafdac', '');
     await page.fill('#in-name', 'Cowbell Our Milk');
     await page.click('#verify-form button[type=submit]');
     await waitForResult(page);
     await modal.waitFor({ state: 'visible', timeout: 10000 });
     assert.match(await page.locator('.modal-pack').innerText(), /no registration number entered/i);
-    assert.ok(await page.locator('.modal-reference img').count() >= 1, 'the flagged pack photo should be shown');
+    // The reference panel renders synchronously with the modal, but Playwright
+    // can observe the pre-render frame; wait for the images rather than count.
+    await page.waitForFunction(() => document.querySelectorAll('.modal-reference img').length >= 1, null, { timeout: 10000 });
     assert.match(await page.locator('.modal-reference-label').innerText(), /flagged pack/i);
     await page.screenshot({ path: path.join(OUT, 'report-modal.png') });
 

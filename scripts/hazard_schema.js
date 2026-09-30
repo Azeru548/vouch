@@ -1,6 +1,8 @@
 function ensureHazardTable(db) {
-  // Curated NAFDAC public-alert records. Manually collected from
-  // nafdac.gov.ng/recalls-and-alerts detail pages; not scraped.
+  // Curated and synced regulator alert records. The NAFDAC rows are collected
+  // from nafdac.gov.ng detail pages (seed + alert sync); Kenya PPB rows come
+  // from the PPB recalls/safety-alerts sync. `source_country` says which
+  // regulator flagged the product — matching and every UI label key off it.
   db.exec(`
     CREATE TABLE IF NOT EXISTS hazard_alerts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -17,6 +19,13 @@ function ensureHazardTable(db) {
     );
   `);
   db.exec('CREATE INDEX IF NOT EXISTS idx_hazards_nafdac ON hazard_alerts (nafdac_number)');
+
+  // Rows written before the multi-country syncs existed are NAFDAC rows.
+  const columns = new Set(db.prepare('PRAGMA table_info(hazard_alerts)').all().map((column) => column.name));
+  if (!columns.has('source_country')) {
+    db.exec("ALTER TABLE hazard_alerts ADD COLUMN source_country TEXT NOT NULL DEFAULT 'NG'");
+  }
+  db.exec('CREATE INDEX IF NOT EXISTS idx_hazards_country ON hazard_alerts (source_country)');
 }
 
 module.exports = { ensureHazardTable };

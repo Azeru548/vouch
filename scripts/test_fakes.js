@@ -108,6 +108,8 @@ function checkSchemaMigration() {
   setup.prepare('INSERT INTO products (nafdac, product_name, status, manufacturer, country) VALUES (?, ?, ?, ?, ?)')
     .run('A4-1205', 'dermovate cream', 'Active', 'Glaxo', 'NG');
   ensureKnownFakesTable(setup);
+  const { ensureHazardTable } = require('./hazard_schema');
+  ensureHazardTable(setup);
   const insertFake = setup.prepare(`
     INSERT INTO known_fakes (alert_number, product_name, nafdac_number, batches, hazard, source_url, photos_json, category, brand_name, aliases, appearance)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -123,6 +125,15 @@ function checkSchemaMigration() {
     'Counterfeit sachets copy the Cowbell brand name and packaging design', 'https://nafdac.gov.ng/alert-026', '[]',
     'food', 'Cowbell', JSON.stringify(['Cowbell Our Milk']),
     'Small 12 g sachet of milk powder. The counterfeit copies the Cowbell brand name and packaging design.');
+  // Kenya PPB row — proves country-scoped matching and the authority labels.
+  setup.prepare(`
+    INSERT INTO known_fakes (alert_number, product_name, nafdac_number, batches, hazard, source_url, photos_json, category, brand_name, aliases, appearance, source_country)
+    VALUES ('REC/2026/016', 'Panto-Denk', NULL, '["6289","6288"]', 'PPB recall (concluded): quality defect during ongoing stability studies', 'https://web.pharmacyboardkenya.org/panto-denk/', '[]', 'drug', 'Panto-Denk', '["Pantoprazole Sodium Sesquihydrate"]', NULL, 'KE')
+  `).run();
+  setup.prepare(`
+    INSERT INTO hazard_alerts (alert_number, product_name, nafdac_number, batches, hazard, alert_type, manufacturer, source_url, alert_date, in_registry, source_country)
+    VALUES ('REC/2026/016', 'Panto-Denk', NULL, '["6289","6288"]', 'PPB recall (concluded): quality defect during ongoing stability studies', 'recall', 'Denk Pharma GmbH & Co. KG', 'https://web.pharmacyboardkenya.org/panto-denk/', '2026-07-28', 0, 'KE')
+  `).run();
   setup.close();
 
   const server = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], {
@@ -177,6 +188,18 @@ function checkSchemaMigration() {
     assert.equal(mismatch.body.status, 'mismatch');
     assert.equal(mismatch.body.suspects?.[0]?.alert_number, '018/2026');
 
+    // 6b. A Kenyan check matches the PPB row and names PPB as the authority.
+    const ke = await check({ product_name: 'Panto-Denk', country: 'KE' });
+    assert.equal(ke.body.status, 'not_found');
+    assert.equal(ke.body.suspects?.[0]?.alert_number, 'REC/2026/016');
+    assert.equal(ke.body.suspects[0].source_country, 'KE');
+    assert.match(ke.body.suspects[0].authority, /Pharmacy and Poisons Board/);
+
+    // 6c. The same name under NG must not see the PPB row — flags are scoped
+    // to the country of the regulator that issued them.
+    const ngIsolation = await check({ product_name: 'Panto-Denk', country: 'NG' });
+    assert.equal(ngIsolation.body.suspects, undefined);
+
     // 7. Validation that must not regress.
     const missingName = await check({ nafdac: 'A11-0009' });
     assert.equal(missingName.status, 400);
@@ -211,7 +234,7 @@ function checkSchemaMigration() {
     await page.fill('#in-name', 'Cerelac');
     await page.click('#verify-form button[type=submit]');
     await page.waitForSelector('.suspect-panel', { timeout: 15000 });
-    assert.match(await page.locator('.suspect-panel').innerText(), /Possible match in our known-fake library/i);
+    assert.match(await page.locator('.suspect-panel').innerText(), /Possible match in our flagged-products library/i);
     assert.match(await page.locator('.suspect').first().innerText(), /Cerelac/);
     assert.match(await page.locator('.suspect-cat').first().innerText(), /Food or drink/i);
     // No number entered, so the number-keyed NAPAMS handoff must stay away.
@@ -224,7 +247,7 @@ function checkSchemaMigration() {
     // The modal sits over the result; close it and the lead is still there.
     await page.click('#report-no');
     await page.locator('#report-modal').waitFor({ state: 'detached', timeout: 10000 });
-    assert.match(await page.locator('.suspect-panel').innerText(), /Possible match in our known-fake library/i);
+    assert.match(await page.locator('.suspect-panel').innerText(), /Possible match in our flagged-products library/i);
     await page.screenshot({ path: path.join(__dirname, '..', 'screenshots', 'known-fake-lead.png'), fullPage: true });
     assert.deepEqual(browserErrors, []);
     console.log('Known-fake lead renders in the UI with no registration number, without the number-keyed panels');
