@@ -95,6 +95,7 @@ Test suites spawn the real server against a temporary database and use per-proce
 
 ## Further documentation
 
+- [`SPEC.md`](SPEC.md) — product specification sheet: mission, feature inventory, the flagged-products database, multi-country architecture, update history and roadmap.
 - [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md) — deep technical context: full schema, tuned thresholds, data quirks, and known gaps. Written for contributors picking up the codebase.
 - [`PRODUCT.md`](PRODUCT.md) — product brief: users, positioning, principles.
 - [`DESIGN.md`](DESIGN.md) — the "Indigo Stamp" visual system and why green is deliberately absent.
