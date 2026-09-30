@@ -674,10 +674,15 @@ function toFakeCandidate(row) {
   };
 }
 
-function knownFakeSuspects(normName, normAppearance, country = 'NG') {
+function knownFakeSuspects(normName, normAppearance, country = 'NG', excludeAlertNumbers = []) {
   if (!normName && !normAppearance) return [];
+  const excluded = new Set(excludeAlertNumbers);
   const scored = [];
   for (const row of selectKnownFakes.all(country)) {
+    // An alert already raised as the hazard banner must not re-appear as a
+    // soft "possible match" lead below it — the same fact twice reads as a
+    // contradiction, not emphasis.
+    if (excluded.has(row.alert_number)) continue;
     const names = [row.product_name, row.brand_name, ...parseJsonArray(row.aliases)].filter(Boolean);
     const nameScore = normName
       ? Math.max(...names.map((name) => fuzz.token_set_ratio(normName, normalizeProductName(name))))
@@ -741,7 +746,7 @@ app.get('/verify', (req, res) => {
   const normAppearance = appearanceParam ? normalizeProductName(appearanceParam) : null;
   const hazard = hazardMatch(normalizedNafdac, normName, country, batchParam || null);
   if (rows.length === 0) {
-    const suspects = knownFakeSuspects(normName, normAppearance, country);
+    const suspects = knownFakeSuspects(normName, normAppearance, country, hazard ? [hazard.alert_number] : []);
     return res.json({
       status: 'not_found',
       nafdac: hasNumber ? nafdac : null,
@@ -854,7 +859,7 @@ app.get('/verify', (req, res) => {
   // Only attach library leads when the registry could NOT confirm the pack.
   // A confirmed registration is never second-guessed by this list.
   if (status === 'not_found' || status === 'mismatch') {
-    const suspects = knownFakeSuspects(normName, normAppearance, country);
+    const suspects = knownFakeSuspects(normName, normAppearance, country, hazard ? [hazard.alert_number] : []);
     if (suspects.length > 0) payload.suspects = suspects;
   }
 
