@@ -118,8 +118,10 @@ date, the official source URL, auto-derived category (drug / food / cosmetic / d
 ### 4.4 How matching uses it
 
 - **Number-keyed matching** is exact and definitive: a flagged registration number raises the hazard banner.
-- **Name matching** (fuzzy, ≥85) catches unregistered packs that have no number to check — the normal case for
-  counterfeit food, drink and cosmetics.
+- **Name matching** (≥85) catches unregistered packs that have no number to check — the normal case for
+  counterfeit food, drink and cosmetics. It scores against every name an alert is known by — brand *and* generic
+  (INN) — so typing "pantoprazole 40mg tablets" finds PPB's "Panto-Denk" recall; a generic-word whole-word rule
+  keeps look-alike drugs from ever half-matching (omeprazole ≠ pantoprazole).
 - **Appearance matching** (≥60, labelled "matched on looks") turns the pack description the vision model writes
   into a lead against the library's appearance text.
 - **Batch refinement** (required for Kenya, hidden for Nigeria — NAFDAC alerts almost never cite batches; also
@@ -138,7 +140,7 @@ date, the official source URL, auto-derived category (drug / food / cosmetic / d
 |---|---|---|
 | **Registry source** | NAFDAC Greenbook snapshot (8,980) | PPB registry snapshot (3,235; pharma-only by source) |
 | **Batch check** | Hidden — NAFDAC alerts rarely cite batches (revisit if that changes) | **Required**: 111 of 137 KE alert entries carry batch lists — the compound name+batch check is Kenya-first |
-| **Alert source** | NAFDAC public alerts/recalls | PPB recalls & safety alerts |
+| **Alert source** | NAFDAC public alerts/recalls | PPB public API (ppb.go.ke/rest/v1) — old-site scrape kept as fallback |
 | **Alert corpus** | 403 entries (2013→) | 138 entries (2023→) |
 | **Matching scope** | `source_country = 'NG'` | `source_country = 'KE'` |
 | **Authority label in UI** | "NAFDAC, Nigeria" | "Pharmacy and Poisons Board (PPB), Kenya" |

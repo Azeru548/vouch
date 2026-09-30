@@ -371,7 +371,12 @@ function hazardMatch(nafdacNumber, normalizedName, country = 'NG', batch = null)
   const TIER_RANK = { batch_matched: 2, product_level: 1, batch_not_listed: 0 };
   let best = null;
   for (const row of unnamed) {
-    const score = fuzz.token_set_ratio(normalizedName, normalizeProductName(row.product_name));
+    // Best score across every name the alert is known by — brand string AND
+    // generic/INN names — so a recall is findable either way a shopper types it.
+    let score = 0;
+    for (const name of hazardNamesFor(row.alert_number, row.product_name)) {
+      score = Math.max(score, nameMatchScore(normalizedName, name));
+    }
     if (score < 85) continue;
     const tier = batchTierFor(row.batches, batch);
     if (!best || TIER_RANK[tier] > TIER_RANK[best.tier] || (TIER_RANK[tier] === TIER_RANK[best.tier] && score > best.score)) {
@@ -583,10 +588,47 @@ app.get('/api/health', (req, res) => {
 function normalizeProductName(name) {
   if (name == null) return '';
   return String(name)
+    .replace(/&#?\w+;/g, ' ')
     .replace(/[#*$]/g, '')
     .toLowerCase()
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+// Dosage forms and strengths appear in almost every product description and
+// say nothing about WHICH product it is. Generic-name matching skips them.
+const GENERIC_STOPWORDS = new Set([
+  'mg', 'ml', 'tablets', 'tablet', 'capsules', 'capsule', 'injection', 'syrup',
+  'suspension', 'solution', 'solutions', 'drops', 'cream', 'ointment', 'gel',
+  'sachet', 'sachets', 'oral', 'pack', 'bottle', 'inj', 'tab', 'cap', 'dt',
+]);
+
+// Shoppers type the generic name printed on the strip ("pantoprazole 40mg
+// tablets"); regulators name recalls by brand ("Panto-Denk"). Fuzzy string
+// distance cannot bridge that (34/100), so a second rule scores a hit when
+// EVERY significant query word — the drug substance words, not dosage forms or
+// strengths — appears as a whole word in the candidate. Whole-word is the
+// safety: "pantoprazole" must never half-match "ampicillin".
+function nameMatchScore(queryNorm, candidateNorm) {
+  const fuzzy = fuzz.token_set_ratio(queryNorm, candidateNorm);
+  if (fuzzy >= 85) return fuzzy;
+  const queryWords = queryNorm.split(/[^a-z0-9]+/)
+    .filter((word) => word.length >= 4 && !GENERIC_STOPWORDS.has(word) && !/^\d/.test(word));
+  if (queryWords.length === 0) return 0;
+  const candidateWords = new Set(candidateNorm.split(/[^a-z0-9]+/));
+  return queryWords.every((word) => candidateWords.has(word)) ? 90 : 0;
+}
+
+// All the names an alert can be matched on: the register title plus the
+// brand/INN metadata on its known_fakes twin (the syncs store PPB's INN there).
+function hazardNamesFor(alertNumber, productName) {
+  const names = [normalizeProductName(productName)];
+  try {
+    const fake = reportsDb.prepare('SELECT brand_name, aliases FROM known_fakes WHERE alert_number = ?').get(alertNumber);
+    if (fake?.brand_name) names.push(normalizeProductName(fake.brand_name));
+    for (const alias of parseJsonArray(fake?.aliases)) names.push(normalizeProductName(alias));
+  } catch {}
+  return names.filter(Boolean);
 }
 
 const selectGreenbook = db.prepare(
