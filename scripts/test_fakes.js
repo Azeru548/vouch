@@ -188,12 +188,15 @@ function checkSchemaMigration() {
     assert.equal(mismatch.body.status, 'mismatch');
     assert.equal(mismatch.body.suspects?.[0]?.alert_number, '018/2026');
 
-    // 6b. A Kenyan check matches the PPB row and names PPB as the authority.
+    // 6b. A Kenyan check raises the PPB row as the hazard banner and names
+    // PPB as the authority — and the same alert must NOT repeat below as a
+    // soft "possible match" lead.
     const ke = await check({ product_name: 'Panto-Denk', country: 'KE' });
     assert.equal(ke.body.status, 'not_found');
-    assert.equal(ke.body.suspects?.[0]?.alert_number, 'REC/2026/016');
-    assert.equal(ke.body.suspects[0].source_country, 'KE');
-    assert.match(ke.body.suspects[0].authority, /Pharmacy and Poisons Board/);
+    assert.equal(ke.body.hazard?.alert_number, 'REC/2026/016');
+    assert.equal(ke.body.hazard?.source_country, 'KE');
+    assert.match(ke.body.hazard?.authority ?? '', /Pharmacy and Poisons Board/);
+    assert.equal(ke.body.suspects, undefined);
 
     // 6c. The same name under NG must not see the PPB row — flags are scoped
     // to the country of the regulator that issued them.

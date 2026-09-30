@@ -528,6 +528,7 @@ function paint(result, input) {
     parts.push(napamsPanel(input));
   }
 
+  parts.push(resultLegend());
   parts.push('<p class="result-footnote">This result reflects the local registry snapshot and does not assess product quality or authenticity beyond the available registration data.</p>');
   setResult(`<div class="result ${treatment.className}">${parts.join('')}</div>`);
   setupNapamsPanel(input);
@@ -561,6 +562,23 @@ function batchNoteFor(hazard, batch) {
     return `This alert is batch-specific (batches ${batchText}) and batch <strong>${escapeHtml(batch || '')}</strong> is not on the list — but a clean batch does not prove a pack is genuine. Compare the photos and check with a pharmacist.`;
   }
   return '';
+}
+
+// Every verdict and batch tier, in one plain sentence each. A first-time
+// user should never have to guess what a badge is promising — or refusing —
+// to promise.
+function resultLegend() {
+  return `<section class="result-legend" aria-label="How to read this result">
+    <h4>How to read this result</h4>
+    <ul>
+      <li><strong>Registry match</strong> — the number is on the regulator's list and active.</li>
+      <li><strong>Approval not active</strong> — it is on the list, but expired or suspended.</li>
+      <li><strong>Details mismatch</strong> — a similar record exists, but it does not confirm your pack.</li>
+      <li><strong>Not found</strong> — no record for what you typed; unregistered, mistyped, or our copy is behind. On its own it is not proof of fake.</li>
+      <li><strong>Your batch is listed</strong> — your pack is on a recall. Do not use it.</li>
+      <li><strong>Your batch is not listed</strong> — the recall is real, but your batch is not on it. Still not proof the pack is genuine.</li>
+    </ul>
+  </section>`;
 }
 
 function hazardBanner(hazard) {
