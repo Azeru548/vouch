@@ -1,0 +1,166 @@
+{
+  "Coglaet ActivGel 100g": {
+    "status": "alert",
+    "text": "Named in NAFDAC Public Alert 022/2026 as an unregistered counterfeit of Colgate toothpaste. Stated maker Guangzhou YECAI Oral Cleaning Products Co., Ltd, Guangzhou. Reg. No. Nil. NAFDAC published photos of the pack.",
+    "source": "https://nafdac.gov.ng/public-alert-no-022-2026-alert-on-the-distribution-of-unregistered-and-suspected-counterfeit-colgate-toothpaste/",
+    "gap": "We hold 022/2026 but not under the name Coglaet, so this does not match."
+  },
+  "Coglaet Herbal 100g": {
+    "status": "alert",
+    "text": "Alert page also lists 'Coglaet Crema Dental Herbal 100 g', mfd 04/08/2025, exp 03/08/2029. Sold door-to-door, no proof of purchase. Two NAFDAC photos published.",
+    "source": "https://nafdac.gov.ng/public-alert-no-022-2026-alert-on-the-distribution-of-unregistered-and-suspected-counterfeit-colgate-toothpaste/",
+    "gap": "Same naming gap as Coglaet ActivGel."
+  },
+  "Oral-B counterfeit toothpaste": {
+    "status": "unconfirmed",
+    "text": "Circulates as a social-media/TikTok claim. NAFDAC has said only that 'investigations are ongoing'. No alert number, no seizure record found. Do not treat as established.",
+    "source": "TikTok @draizident, ~2 weeks old"
+  },
+  "Really Extra Diclofenac 50mg": {
+    "status": "investigation",
+    "text": "Actual product is 'Dr. Really Extra', an unregistered copycat of the registered Yef Real Extra (A11-0298). 190 cartons destroyed by NAFDAC, Mar 2019. Lab tested at University of Lagos: passed assay but 'regulatory details are not satisfactory'; no maker address, not registered, not dated. CRITICAL: the registered original Yef Real Extra itself failed its own assay, below the 90-110% spec. Flagging the copycat must not imply the original is safe.",
+    "source": "https://www.icirnigeria.org/toxic-tablets-counterfeit-pills-i-killer-drugs-that-damage-nigerians-health/",
+    "source2": "https://nafdac.gov.ng/speech-by-professor-mojisola-christianah-adeyeye-at-the-general-destruction-exercise-of-expired-substandard-and-falsified-medical-products-other-spurious-unsafe-and-unwholesome-nafdac-regulated-pr/"
+  },
+  "Reliance Extra Diclofenac 50mg": {
+    "status": "unconfirmed",
+    "text": "Zero results across every query. Appears only in recycled copies of this viral list. Probably the same '...Extra' copycat family as Dr. Really Extra. No evidence either way.",
+    "source": null
+  },
+  "Tamral 250mg Tablets": {
+    "status": "law-enforcement",
+    "text": "NDLEA intercepted 2.4m tramadol tablets from Pakistan at Lagos airport: 7 cartons of 250mg branded 'Tamral' plus 45 cartons of 225mg branded 'TramaKing'. This is a drug-enforcement seizure of an illicit opioid, NOT a regulator finding that the product is falsified. Must not enter the NAFDAC-attributed register.",
+    "source": "https://www.thecable.ng/ndlea-intercepts-2-4m-tramadol-tablets-smuggled-from-pakistan-at-lagos-airport/"
+  },
+  "Tamral 225 Tablets": {
+    "status": "law-enforcement",
+    "text": "No Tamral 225mg seizure is documented. The documented 225mg line from that same seizure is 'TramaKing 225mg'. The list appears to have merged the two.",
+    "source": "https://www.thecable.ng/ndlea-intercepts-2-4m-tramadol-tablets-smuggled-from-pakistan-at-lagos-airport/"
+  },
+  "Tramadol 120mg Capsules": {
+    "status": "enforcement",
+    "text": "Not a counterfeit finding. Corresponds to NAFDAC's restrictions advisory on codeine and tramadol, which is about clinical use in children and breastfeeding, not about falsified product.",
+    "source": "nafdac.gov.ng advisory on restricting codeine and tramadol"
+  },
+  "Tramadol 225mg Tablets": {
+    "status": "enforcement",
+    "text": "Same advisory, not a counterfeit finding.",
+    "source": "nafdac.gov.ng advisory on restricting codeine and tramadol"
+  },
+  "Big Bull Rice": {
+    "status": "enforcement",
+    "text": "Counterfeit rice repackaged into Big Bull branded bags. Nasarawa Dec 2024: 1,600 bags, ~N5bn. Rivers/Port Harcourt Mar 2025: 120 bags from 10+ shops plus empty cloned Big Bull bags for repackaging. Fraud mode is bag reuse, not fake formulation.",
+    "source": "https://thesun.ng/nafdac-busts-warehouse-shops-seizes-n5bn-counterfeit-rice-in-nasarawa/",
+    "source2": "https://punchng.com/nafdac-seizes-120-bags-of-counterfeit-rice-in-rivers/"
+  },
+  "Royal Stallion Rice": {
+    "status": "enforcement",
+    "text": "Named specifically in the Nasarawa Dec 2024 seizure as a bag brand being filled with counterfeit rice.",
+    "source": "https://thesun.ng/nafdac-busts-warehouse-shops-seizes-n5bn-counterfeit-rice-in-nasarawa/"
+  },
+  "Tomato Rice": {
+    "status": "enforcement",
+    "text": "Named in the Nasarawa seizure as 'Tomato Aposo'.",
+    "source": "https://thesun.ng/nafdac-busts-warehouse-shops-seizes-n5bn-counterfeit-rice-in-nasarawa/"
+  },
+  "Stallion Rice": {
+    "status": "enforcement",
+    "text": "Found alongside empty counterfeit Big Bull bags during the Rivers/Port Harcourt operation.",
+    "source": "https://punchng.com/nafdac-seizes-120-bags-of-counterfeit-rice-in-rivers/"
+  },
+  "Cap Rice": {
+    "status": "enforcement",
+    "text": "Found during the Rivers/Port Harcourt operation. NOTE: our matcher wrongly pairs this with 034/2026 (Bulmex parboiled rice, a Niger Republic import ban over metallic contamination) purely on the shared word 'rice'. Different product, different hazard.",
+    "source": "https://punchng.com/nafdac-seizes-120-bags-of-counterfeit-rice-in-rivers/"
+  },
+  "Mama Pride Rice": {
+    "status": "enforcement",
+    "text": "Named by NAFDAC in the Rivers/Port Harcourt operation of Mar 2025, among 'other rice brands' present at a shop trading counterfeit Big Bull Rice. Being named is not the same as having been individually tested. (Corrected 4 Oct 2026: earlier noted as unconfirmed — Punch's report of NAFDAC's statement does name it.)",
+    "source": "https://punchng.com/nafdac-seizes-120-bags-of-counterfeit-rice-in-rivers/"
+  },
+  "Fanta": {
+    "status": "enforcement",
+    "text": "One of 14 brands named by NAFDAC's DG after the 15 Dec 2024 Operation Clean Up raid on Aba Cemetery Market, Abia. 240 shops turned into illegal factories, N5bn seized, 1,500+ cartons destroyed.",
+    "source": "https://acnntv.com/health-risk-alert-nafdac-shuts-down-250-factories-making-fake-beverages-in-abia/"
+  },
+  "Coca-Cola": {
+    "status": "enforcement",
+    "text": "Same Aba raid. Separately, the FCCPC (competition authority, not NAFDAC) reported lookalike products in identical bottles with identical branding, Jul 2024.",
+    "source": "https://fccpc.gov.ng/wp-content/uploads/2024/07/Report-Investigation-of-Coca-Cola-Nig-Ltd-and-NBC-Business-Practices.pdf"
+  },
+  "Schweppes": { "status": "enforcement", "text": "Named in the DG's list of counterfeit soft drinks from the Aba raid.", "source": "https://acnntv.com/health-risk-alert-nafdac-shuts-down-250-factories-making-fake-beverages-in-abia/" },
+  "Lacasera": { "status": "enforcement", "text": "Named in the DG's list of counterfeit soft drinks from the Aba raid.", "source": "https://acnntv.com/health-risk-alert-nafdac-shuts-down-250-factories-making-fake-beverages-in-abia/" },
+  "Hollandia Yoghurt": { "status": "enforcement", "text": "Named in the Aba raid. Separately, three warehouses in Aba were found on 22 Jan 2025 stockpiling EXPIRED Hollandia Yoghurt for illegal revalidation - a date re-badging fraud, distinct from counterfeiting.", "source": "https://acnntv.com/health-risk-alert-nafdac-shuts-down-250-factories-making-fake-beverages-in-abia/" },
+  "Super Commando Energy Drink": { "status": "enforcement", "text": "Named in the DG's list of counterfeit non-alcoholic drinks from the Aba raid.", "source": "https://acnntv.com/health-risk-alert-nafdac-shuts-down-250-factories-making-fake-beverages-in-abia/" },
+  "Feyrouz": { "status": "enforcement", "text": "Spelled 'Fayrouz' in the DG's statement. Same Aba raid.", "source": "https://acnntv.com/health-risk-alert-nafdac-shuts-down-250-factories-making-fake-beverages-in-abia/" },
+  "Amstel Malta": { "status": "enforcement", "text": "Same Aba raid. Spelled 'Amstel Malt' in one write-up.", "source": "https://acnntv.com/health-risk-alert-nafdac-shuts-down-250-factories-making-fake-beverages-in-abia/" },
+  "Peak Sachet Milk": { "status": "enforcement", "text": "Same Aba raid. Not the same as the separate 026/2023 Peak Milk counterfeit alert.", "source": "https://acnntv.com/health-risk-alert-nafdac-shuts-down-250-factories-making-fake-beverages-in-abia/" },
+  "Peak Chocolate Drink": { "status": "enforcement", "text": "Same Aba raid.", "source": "https://acnntv.com/health-risk-alert-nafdac-shuts-down-250-factories-making-fake-beverages-in-abia/" },
+  "Miksi Sachet Milk": { "status": "enforcement", "text": "Same Aba raid.", "source": "https://acnntv.com/health-risk-alert-nafdac-shuts-down-250-factories-making-fake-beverages-in-abia/" },
+  "Cadbury Chocolate Drink": { "status": "enforcement", "text": "Same Aba raid. Adulterated with saccharin and artificial colouring per the DG's statement.", "source": "https://acnntv.com/health-risk-alert-nafdac-shuts-down-250-factories-making-fake-beverages-in-abia/" },
+  "Ovaltine": { "status": "enforcement", "text": "Same Aba raid.", "source": "https://acnntv.com/health-risk-alert-nafdac-shuts-down-250-factories-making-fake-beverages-in-abia/" },
+  "Palm Oil": { "status": "no-evidence", "text": "Category, not a product. Our DB already holds the relevant category-level alert 039/2025 on substandard and unregistered edible oils.", "source": null },
+  "Cooking Oil": { "status": "no-evidence", "text": "Category. See 039/2025 (edible oils).", "source": null },
+  "Honey": { "status": "no-evidence", "text": "Category. Our DB holds 008/2018 on honey.", "source": null },
+  "Yoghurt": { "status": "no-evidence", "text": "Category. The specific brand (Hollandia) is covered separately from the Aba raid.", "source": null },
+  "Ground Pepper": { "status": "no-evidence", "text": "Category, no product, batch or authority behind the individual line.", "source": null },
+  "Spices": { "status": "no-evidence", "text": "Category.", "source": null },
+  "Tomato Products": { "status": "no-evidence", "text": "Category.", "source": null },
+  "Wheat Flour": { "status": "no-evidence", "text": "Category.", "source": null },
+  "Yam Flour": { "status": "no-evidence", "text": "Category.", "source": null },
+  "Beans": { "status": "no-evidence", "text": "Category.", "source": null },
+  "Egusi/Melon": { "status": "no-evidence", "text": "Category.", "source": null },
+  "Seafood": { "status": "no-evidence", "text": "Category.", "source": null },
+  "Alcoholic Beverages": { "status": "no-evidence", "text": "Category. NAFDAC is separately enforcing a ban on sachet alcohol and small PET-bottled spirits.", "source": null },
+  "Petrol/PMS": { "status": "no-evidence", "text": "Category, and outside the scope of a product-verification app built on the NAFDAC register.", "source": null },
+  "Falsified medicines containing ethylene glycol/diethylene glycol": {
+    "status": "alert",
+    "text": "We hold this as an ethylene glycol alert, but its NAFDAC page title and URL slug disagree (URL says no0042, title says No:0043), so it was stored keyed by its URL. It carries 7 regulator photos.",
+    "source": "https://nafdac.gov.ng/public-alert-no0042-products-contaminated-with-ethylene-glycol-and-or-diethylene-glycol/"
+  },
+  "Falsified paediatric cough syrups": {
+    "status": "alert",
+    "text": "Alert 039/2022 covers substandard contaminated paediatric syrups. MATCHING GAP: our matcher does not connect this list wording to that alert title.",
+    "source": "https://nafdac.gov.ng/public-alert-no-039-2022/"
+  },
+  "Meronen 1g Injection": {
+    "status": "alert",
+    "text": "Alert 036/2023 is 'Alert on Counterfeit Meronem 1g Injection circulating in Nigeria'. MATCHING GAP: the list's spelling 'Meronen' does not reach it.",
+    "source": "https://nafdac.gov.ng/public-alert-no-036-2023/"
+  },
+  "Postinor-2": {
+    "status": "alert",
+    "text": "Alert 027/2025 is 'Alert on Confirmed Counterfeit Postinor2 (Levonorgestrel 0.75mg) in Nigeria'. MATCHING GAP: 'Postinor-2' with a hyphen does not reach 'Postinor2'.",
+    "source": "https://nafdac.gov.ng/public-alert-no-027-2025/"
+  },
+  "Whippy Real Mayonnaise": {
+    "status": "alert",
+    "text": "Alert 024/2023 is 'Alert on Unwholesome Whippy Real Mayonaisse' (NAFDAC's own spelling). MATCHING GAP: our matcher misses the two spelling differences.",
+    "source": "https://nafdac.gov.ng/public-alert-no-024-2023/"
+  },
+  "Milk": {
+    "status": "alert",
+    "text": "Category line. The nearest alert is 021/2022, Continental Mills recalling Walmart Great Value milk - a US recall, not a Nigerian product. Do not treat a generic 'milk' query as matched.",
+    "source": null
+  },
+  "Fish": {
+    "status": "alert",
+    "text": "Category line. Alert 0029/2018 relays a Ghanaian warning on puffer fish. MATCHING GAP: a bare 'Fish' query will not reach it, and should not.",
+    "source": null
+  },
+  "Meat": {
+    "status": "alert",
+    "text": "Category line. Alert 005/2018 covers contaminated meat products from South Africa. MATCHING GAP as above.",
+    "source": null
+  },
+  "Poultry": {
+    "status": "alert",
+    "text": "Category line. NAFDAC relayed a Hong Kong import ban on Italian poultry products. MATCHING GAP as above.",
+    "source": null
+  },
+  "BUA Rice": {
+    "status": "unconfirmed",
+    "text": "No NAFDAC action found naming BUA Rice. It appears in the viral list without a source.",
+    "source": null
+  }
+}

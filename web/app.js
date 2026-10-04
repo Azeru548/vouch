@@ -283,12 +283,18 @@ async function runPackRead() {
     els.thumbsWrap.classList.remove('is-reading');
 
     if (!response.ok) {
-      setOcrStatus(
-        result.error === 'vision_not_configured'
-          ? 'Photo reading is not configured. Type the numbers below.'
-          : 'Photo reading could not finish. Type the numbers below.',
-        true,
-      );
+      // A busy photo reader is not a failed check: say so, and keep the photos
+      // on screen so the user can just tap to read again.
+      if (result.error === 'vision_rate_limited') {
+        setOcrStatus('Photo reading is busy right now. Tap the photos to read them again in a few seconds, or type the numbers below.', true);
+      } else {
+        setOcrStatus(
+          result.error === 'vision_not_configured'
+            ? 'Photo reading is not configured. Type the numbers below.'
+            : 'Photo reading could not finish. Type the numbers below.',
+          true,
+        );
+      }
       els.nafdac.focus();
       return;
     }
@@ -521,6 +527,10 @@ function paint(result, input) {
     parts.push(suspectsPanel(result.suspects));
   }
 
+  if (Array.isArray(result.enforcement_notes) && result.enforcement_notes.length > 0) {
+    parts.push(enforcementPanel(result.enforcement_notes));
+  }
+
   // The NAPAMS handoff is keyed by a registration number, so it is only
   // offered when the user entered one. Reporting is not: it is asked after
   // every check, including the ones with no number.
@@ -656,6 +666,39 @@ function suspectsPanel(suspects) {
     <ul class="suspect-list">${cards}</ul>
     <p class="suspect-more">The full register of flagged products, with every reference photo, lives on the <a href="/alerts.html">Flagged products page</a>.</p>
   </section>`;
+}
+
+// Enforcement actions: raids, destruction exercises and lab cases that NAFDAC
+// has made public. Deliberately a different panel from the alert banner and the
+// suspect leads — an enforcement action names no batch and carries no alert
+// number, so it can never confirm or refute the pack in someone's hand. The
+// wording says so on the panel itself, so the note cannot be misread as a verdict.
+function enforcementPanel(notes) {
+  const cards = notes.map((note) => {
+    const when = formatActionDate(note.action_date);
+    const where = note.location ? ` · ${escapeHtml(note.location)}` : '';
+    return `<li class="enforcement-item">
+      <div class="enforcement-body">
+        <span class="enforcement-cat">${escapeHtml(note.authority)} enforcement action</span>
+        <strong>${escapeHtml(note.summary)}</strong>
+        <p class="enforcement-meta">${escapeHtml(when)}${where} · matched: ${escapeHtml(note.matched_brands.join(', '))}</p>
+        <p class="enforcement-note">${escapeHtml(note.evidence_note || '')}</p>
+        <p class="enforcement-source">Source: <a href="${escapeHtml(note.source_url)}" target="_blank" rel="noopener">${escapeHtml(note.source_publisher)}</a></p>
+      </div>
+    </li>`;
+  }).join('');
+
+  return `<section class="enforcement-panel" aria-labelledby="enforcement-title">
+    <h3 id="enforcement-title">Enforcement action on record for this brand</h3>
+    <p>NAFDAC has publicly acted on this brand. This is a record of that action, with its date and source — it is <strong>not</strong> a finding about the pack you are checking. Enforcement actions name no batch and carry no alert number, so they cannot confirm or refute any single product.</p>
+    <ul class="enforcement-list">${cards}</ul>
+  </section>`;
+}
+
+function formatActionDate(value) {
+  const parsed = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) return escapeHtml(value);
+  return parsed.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 }
 
 function communityBanner(flag) {

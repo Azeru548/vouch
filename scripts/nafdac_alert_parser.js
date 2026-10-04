@@ -34,18 +34,40 @@ function parseAlertDate(text) {
 // suffixes ('No. 030A/2025') and the missing leading zero NAFDAC sometimes
 // drops ('Public Alert No.35/2025'). Numbers are padded to three digits, which
 // is how the curated rows store them.
-function parseAlertNumber(title) {
-  const m = /(?:Alert|Notice)[^/]*?No\.?\s*:?\s*(\d{1,3}[A-Z]?)\s*\/\s*(\d{4})/i.exec(title);
-  if (!m) return null;
-  return `${m[1].toUpperCase().padStart(3, '0')}/${m[2]}`;
+//
+// The digit run must allow FOUR digits, not three: NAFDAC writes zero-padded
+// four-digit numbers on older alerts ('No. 0037/2022', 'No:0048/2021'). A
+// {1,3} bound can never match those, which silently pushed 126 alerts to be
+// keyed by their source URL instead of an alert number.
+//
+// 'No' is also optional: older headlines drop it entirely ('Public Alert
+// 003/2022', 'Public Alert 0011/2022').
+function parseAlertNumber(title, fallbackYear) {
+  const withNo = /(?:Alert|Notice)[^/]*?(?:No\.?\s*:?\s*)?(\d{1,4}[A-Z]?)\s*\/\s*(\d{4})/i;
+  const m = withNo.exec(title);
+  if (m) return `${m[1].toUpperCase().padStart(3, '0')}/${m[2]}`;
+
+  // Some headlines carry the number but no year, e.g.
+  // 'Public Alert No:0043 - Products Contaminated With Ethylene Glycol'.
+  // The alert's own publication date supplies the year.
+  if (fallbackYear && /^\d{4}$/.test(String(fallbackYear))) {
+    const y = /(?:Alert|Notice)[^/]*?(?:No\.?\s*:?\s*)?(\d{1,4}[A-Z]?)\s*(?:[-–—:]|\s)(?!\d)/i.exec(title);
+    if (y) return `${y[1].toUpperCase().padStart(3, '0')}/${fallbackYear}`;
+  }
+  return null;
 }
 
-function alertNumberFromTitleOrUrl(title, url) {
-  const fromTitle = parseAlertNumber(title);
+function alertNumberFromTitleOrUrl(title, url, alertDate) {
+  const year = alertDate ? String(alertDate).slice(0, 4) : null;
+  const fromTitle = parseAlertNumber(title, year);
   if (fromTitle) return fromTitle;
   const slug = String(url).replace(/\/$/, '').split('/').pop() || '';
-  const m = /(?:public-alert-no-?)(\d{1,3}[ab]?)-(\d{4})/i.exec(slug);
+  const m = /(?:public-alert-no-?)(\d{1,4}[ab]?)-(\d{4})/i.exec(slug);
   if (m) return `${m[1].padStart(3, '0')}/${m[2]}`;
+  if (year) {
+    const s = /(?:public-alert-no-?)(\d{1,4}[ab]?)(?![-0-9])/i.exec(slug);
+    if (s) return `${s[1].toUpperCase().padStart(3, '0')}/${year}`;
+  }
   return null;
 }
 

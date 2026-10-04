@@ -76,7 +76,7 @@ function importAlerts(db, rows, { now = new Date().toISOString() } = {}) {
     if (!row.source_url) { skipped.no_url++; continue; }
     if (knownUrls.has(row.source_url)) { skipped.already_known++; continue; }
 
-    const alertNumber = alertNumberFromTitleOrUrl(row.title, row.source_url);
+    const alertNumber = alertNumberFromTitleOrUrl(row.title, row.source_url, row.alert_date);
     // A curated row already covers this alert number — most often NAFDAC's
     // "Updated …" re-posts. The curated row has hand-tuned photos, aliases
     // and appearance text; never overwrite it.

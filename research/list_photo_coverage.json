@@ -1,0 +1,979 @@
+[
+  {
+    "item": "Noristerat Injection 200mg",
+    "matched_alert": {
+      "alert_number": "006/2025",
+      "product_name": "Alert on the Sale of Counterfeit Noristerat Injection 200mg in Nigeria",
+      "alert_date": "2025-03-11",
+      "n": 1,
+      "local": 1,
+      "norm": "alert on the sale of counterfeit noristerat injection 200mg in nigeria",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Cikatem",
+    "matched_alert": {
+      "alert_number": "05/2025",
+      "product_name": "Cikatem Suspension 180/1080mg",
+      "alert_date": "2025-03-11",
+      "n": 3,
+      "local": 3,
+      "norm": "cikatem suspension 180 1080mg",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Paludex",
+    "matched_alert": {
+      "alert_number": "049/2024",
+      "product_name": "Sales and Distribution of Confirmed Counterfeit Paludex (Artemether/Lumefantrine ) Tablets (80mg/480mg) and Suspension (20mg/120mg)",
+      "alert_date": "2024-12-11",
+      "n": 3,
+      "local": 3,
+      "norm": "sales and distribution of confirmed counterfeit paludex artemether lumefantrine tablets 80mg 480mg and suspension 20mg 120mg",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Colamar",
+    "matched_alert": {
+      "alert_number": "031/2024",
+      "product_name": "Illegal Sale of Substandard and Falsified (SF) Colamar (Artemether/Lumefantrine 20/120mg) Oral Suspension",
+      "alert_date": "2024-08-07",
+      "n": 1,
+      "local": 1,
+      "norm": "illegal sale of substandard and falsified sf colamar artemether lumefantrine 20 120mg oral suspension",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Aflotin 20/120",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Tandak Injection",
+    "matched_alert": {
+      "alert_number": "011/2024",
+      "product_name": "Alert on the Sale of Counterfeit Tandak Injection in Nigeria",
+      "alert_date": "2024-04-03",
+      "n": 2,
+      "local": 2,
+      "norm": "alert on the sale of counterfeit tandak injection in nigeria",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Lins Meropenem Injection",
+    "matched_alert": {
+      "alert_number": "021/2024",
+      "product_name": "Confirmed Falsified Lins Meropenem Injection Used in Abuja",
+      "alert_date": "2024-05-31",
+      "n": 3,
+      "local": 3,
+      "norm": "confirmed falsified lins meropenem injection used in abuja",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "OHEAL Ampicillin/Cloxacillin",
+    "matched_alert": {
+      "alert_number": "020/2024",
+      "product_name": "Alert on Confirmed Falsified OHEAL Ampicillin and Cloxacillin Capsule",
+      "alert_date": "2024-05-28",
+      "n": 3,
+      "local": 3,
+      "norm": "alert on confirmed falsified oheal ampicillin and cloxacillin capsule",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Giga-S Injection",
+    "matched_alert": {
+      "alert_number": "019/2024",
+      "product_name": "Alert on falsification of a batch of Giga-S Injection",
+      "alert_date": "2024-05-28",
+      "n": 4,
+      "local": 4,
+      "norm": "alert on falsification of a batch of giga s injection",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Asian Ampicillin/Cloxacillin",
+    "matched_alert": {
+      "alert_number": "018/2024",
+      "product_name": "Information on the Illegal Manufacturing, Distribution, and Sale of Substandard and Falsified (SF) Paediatric Asian Ampicillin /Cloxacillin Oral Suspension and other Asian Paediatric Products",
+      "alert_date": "2024-05-28",
+      "n": 3,
+      "local": 3,
+      "norm": "information on the illegal manufacturing distribution and sale of substandard and falsified sf paediatric asian ampicillin cloxacillin oral suspension and other asian paediatric products",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "ZACEF-TZ Injection",
+    "matched_alert": {
+      "alert_number": "009/2024",
+      "product_name": "Alert on the Sale of Unregistered ZACEF-TZ Injection in Circulation in Nigeria",
+      "alert_date": "2024-02-08",
+      "n": 2,
+      "local": 0,
+      "norm": "alert on the sale of unregistered zacef tz injection in circulation in nigeria",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Chloroquine Tablets",
+    "matched_alert": {
+      "alert_number": "007/2024",
+      "product_name": "Alert on Suspected Falsified Chloroquine Tablets",
+      "alert_date": "2024-01-30",
+      "n": 2,
+      "local": 0,
+      "norm": "alert on suspected falsified chloroquine tablets",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Oxytocin Injection",
+    "matched_alert": {
+      "alert_number": "028/2025",
+      "product_name": "Alert on Unregistered/Falsified Oxytocin Injection",
+      "alert_date": "2025-08-25",
+      "n": 4,
+      "local": 4,
+      "norm": "alert on unregistered falsified oxytocin injection",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Meronen 1g Injection",
+    "matched_alert": null,
+    "partial": "50% (031/2025)"
+  },
+  {
+    "item": "Avastin",
+    "matched_alert": {
+      "alert_number": "015/2026",
+      "product_name": "Alert on Confirmed Counterfeit of Avastin 400mg/ 16ml and Tecentriq 1200mg/20ml in Nigeria",
+      "alert_date": "2026-03-12",
+      "n": 2,
+      "local": 2,
+      "norm": "alert on confirmed counterfeit of avastin 400mg 16ml and tecentriq 1200mg 20ml in nigeria",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "PHESGO",
+    "matched_alert": {
+      "alert_number": "051/2024",
+      "product_name": "Alert on Confirmed Counterfeit PHESGO 600mg600mg/10ml With Batch Number C5290S20 Stated to be Manufactured by Roche S,P,A.",
+      "alert_date": "2024-12-23",
+      "n": 3,
+      "local": 3,
+      "norm": "alert on confirmed counterfeit phesgo 600mg600mg 10ml with batch number c5290s20 stated to be manufactured by roche s p a",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Mabthera",
+    "matched_alert": {
+      "alert_number": "016/2026",
+      "product_name": "Alert on Confirmed Counterfeit of Mabthera 500mg/ 50ml in Nigeria",
+      "alert_date": "2026-03-12",
+      "n": 1,
+      "local": 1,
+      "norm": "alert on confirmed counterfeit of mabthera 500mg 50ml in nigeria",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Tecentriq",
+    "matched_alert": {
+      "alert_number": "015/2026",
+      "product_name": "Alert on Confirmed Counterfeit of Avastin 400mg/ 16ml and Tecentriq 1200mg/20ml in Nigeria",
+      "alert_date": "2026-03-12",
+      "n": 2,
+      "local": 2,
+      "norm": "alert on confirmed counterfeit of avastin 400mg 16ml and tecentriq 1200mg 20ml in nigeria",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Perjeta",
+    "matched_alert": {
+      "alert_number": "028/2024",
+      "product_name": "Alert on Confirmed Counterfeits of Perjeta in Nigeria",
+      "alert_date": "2024-08-06",
+      "n": 2,
+      "local": 2,
+      "norm": "alert on confirmed counterfeits of perjeta in nigeria",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Herceptin",
+    "matched_alert": {
+      "alert_number": "017/2026",
+      "product_name": "Alert on Confirmed Counterfeit of Herceptin 600 mg in Nigeria",
+      "alert_date": "2026-03-12",
+      "n": 1,
+      "local": 1,
+      "norm": "alert on confirmed counterfeit of herceptin 600 mg in nigeria",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Combiart",
+    "matched_alert": {
+      "alert_number": "043/2024",
+      "product_name": "Alert on the Sale of Counterfeit COMBIART (Artemether + Lumefantrine 20/120mg) Dispersible Tablet in Nigeria",
+      "alert_date": "2024-11-21",
+      "n": 1,
+      "local": 1,
+      "norm": "alert on the sale of counterfeit combiart artemether lumefantrine 20 120mg dispersible tablet in nigeria",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Dostinex",
+    "matched_alert": {
+      "alert_number": "021/2023",
+      "product_name": "Pfizer warns against counterfeit Dostinex in Nigeria",
+      "alert_date": "2023-06-24",
+      "n": 1,
+      "local": 0,
+      "norm": "pfizer warns against counterfeit dostinex in nigeria",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Ozempic",
+    "matched_alert": {
+      "alert_number": "014/2023",
+      "product_name": "Alert on One Batch of Falsified Ozempic (Semaglutide) Pen in Nigeria.",
+      "alert_date": "2023-05-02",
+      "n": 4,
+      "local": 0,
+      "norm": "alert on one batch of falsified ozempic semaglutide pen in nigeria",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Lantus SoloStar",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Daonil 5mg",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Neo Medrol",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Augmentin 625mg",
+    "matched_alert": {
+      "alert_number": "https://nafdac.gov.ng/nafdac-alert-and-sensitization-of-the-public-on-suspected-falsified-augmentin-625mg/",
+      "product_name": "Public Alert No: 42 - NAFDAC Alert And Sensitization Of The Public On Suspected Falsified Augmentin 625mg",
+      "alert_date": "2022-10-22",
+      "n": 3,
+      "local": 0,
+      "norm": "public alert no 42 nafdac alert and sensitization of the public on suspected falsified augmentin 625mg",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Artequin 600/750",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Seretide Accuhaler",
+    "matched_alert": {
+      "alert_number": "005/2024",
+      "product_name": "Sales of Unregistered Seretide Accuhaler on Instagram and Online Media",
+      "alert_date": "2024-01-19",
+      "n": 2,
+      "local": 0,
+      "norm": "sales of unregistered seretide accuhaler on instagram and online media",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Tarivid",
+    "matched_alert": {
+      "alert_number": "021/2025",
+      "product_name": "Alert on the Report of Unregistered Tarivid (Ofloxacin 200mg) found in Nigeria",
+      "alert_date": "2025-06-10",
+      "n": 2,
+      "local": 2,
+      "norm": "alert on the report of unregistered tarivid ofloxacin 200mg found in nigeria",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Embacef",
+    "matched_alert": {
+      "alert_number": "029/2025",
+      "product_name": "Embacef 125 Powder for Oral Suspension",
+      "alert_date": "2025-08-27",
+      "n": 3,
+      "local": 3,
+      "norm": "embacef 125 powder for oral suspension",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Wonder Calcium",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Juhel Folic Acid Tablets",
+    "matched_alert": null,
+    "partial": "25% (03/2026)"
+  },
+  {
+    "item": "Regpara 25mg",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Apo-Amitriptyline",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Deekins Amoxycillin",
+    "matched_alert": {
+      "alert_number": "048/2024",
+      "product_name": "Alert on Recall of Deekins Amoxycillin 500mg Capsule Batch 4C639001",
+      "alert_date": "2024-12-03",
+      "n": 1,
+      "local": 1,
+      "norm": "alert on recall of deekins amoxycillin 500mg capsule batch 4c639001",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Acetazolamide",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Pantogen",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Ryaltris",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Simbrinza",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Cardura XL",
+    "matched_alert": {
+      "alert_number": "038/2024",
+      "product_name": "Alert on Recall of Cardura XL (Doxazosin) Extended-Release Tablets",
+      "alert_date": "2024-09-17",
+      "n": 2,
+      "local": 2,
+      "norm": "alert on recall of cardura xl doxazosin extended release tablets",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "OXYCONTIN 80mg",
+    "matched_alert": {
+      "alert_number": "007/2025",
+      "product_name": "Alert on Falsified OXYCONTIN 80mg identified in the WHO European Region",
+      "alert_date": "2025-03-20",
+      "n": 1,
+      "local": 1,
+      "norm": "alert on falsified oxycontin 80mg identified in the who european region",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Healmoxy 500mg",
+    "matched_alert": {
+      "alert_number": "017/2025",
+      "product_name": "Alert on Falsified Batches of Healmoxy Capsules 500mg found in Cameroon and Central African Republic (CAR)",
+      "alert_date": "2025-06-01",
+      "n": 4,
+      "local": 4,
+      "norm": "alert on falsified batches of healmoxy capsules 500mg found in cameroon and central african republic car",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Accu-Chek Instant Test",
+    "matched_alert": null,
+    "partial": "25% (011/2026)"
+  },
+  {
+    "item": "Prevenar 13",
+    "matched_alert": {
+      "alert_number": "002/2024",
+      "product_name": "Pfizer warns against Tampered Expiry date on Prevenar 13 batch CL 3337",
+      "alert_date": "2024-01-19",
+      "n": 4,
+      "local": 0,
+      "norm": "pfizer warns against tampered expiry date on prevenar 13 batch cl 3337",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Zovirax IV Infusion",
+    "matched_alert": {
+      "alert_number": "009/2025",
+      "product_name": "Voluntary Recall of Zovirax IV Infusion by GlaxoSmithKline (GSK) Limited Due to Potential Quality Defects",
+      "alert_date": "2025-04-11",
+      "n": 1,
+      "local": 1,
+      "norm": "voluntary recall of zovirax iv infusion by glaxosmithkline gsk limited due to potential quality defects",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Dexamethasone products",
+    "matched_alert": {
+      "alert_number": "040/2022",
+      "product_name": "Alert on Detection of substandard dexamethasone products in Nigeria",
+      "alert_date": "2022-10-07",
+      "n": 1,
+      "local": 0,
+      "norm": "alert on detection of substandard dexamethasone products in nigeria",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "DySPORT",
+    "matched_alert": {
+      "alert_number": "038/2022",
+      "product_name": "Alert on Falsified DYSPORT (Clostridium botulinum type A toxin-haemagglutinin complex) identified in the WHO Regions of Europe and Eastern Mediterranean",
+      "alert_date": "2022-08-30",
+      "n": 4,
+      "local": 0,
+      "norm": "alert on falsified dysport clostridium botulinum type a toxin haemagglutinin complex identified in the who regions of europe and eastern mediterranean",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Falsified paediatric cough syrups",
+    "matched_alert": null,
+    "partial": "75% (039/2022)"
+  },
+  {
+    "item": "Falsified/contaminated Propylene Glycol",
+    "matched_alert": {
+      "alert_number": "017/2024",
+      "product_name": "Alert on Falsified (contaminated) USP/EP PROPYLENE GLYCOL identified in the WHO Eastern Mediterranean Region",
+      "alert_date": "2024-05-28",
+      "n": 1,
+      "local": 1,
+      "norm": "alert on falsified contaminated usp ep propylene glycol identified in the who eastern mediterranean region",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Falsified medicines containing ethylene glycol/diethylene glycol",
+    "matched_alert": null,
+    "partial": "57% (https://nafdac.gov.ng/public-alert-no0042-products-contaminated-with-ethylene-glycol-and-or-diethylene-glycol/)"
+  },
+  {
+    "item": "Tamral 225 Tablets",
+    "matched_alert": null,
+    "partial": "50% (03/2026)"
+  },
+  {
+    "item": "Tamral 250mg Tablets",
+    "matched_alert": null,
+    "partial": "67% (004/2020)"
+  },
+  {
+    "item": "Tramadol 120mg Capsules",
+    "matched_alert": null,
+    "partial": "33% (024/2025)"
+  },
+  {
+    "item": "Tramadol 225mg Tablets",
+    "matched_alert": null,
+    "partial": "33% (03/2026)"
+  },
+  {
+    "item": "Really Extra Diclofenac 50mg",
+    "matched_alert": null,
+    "partial": "25% (033/2023)"
+  },
+  {
+    "item": "Relity Extra Diclofenac 50mg",
+    "matched_alert": null,
+    "partial": "25% (033/2023)"
+  },
+  {
+    "item": "Coglaet ActivGel 100g",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Coglaet Herbal 100g",
+    "matched_alert": null,
+    "partial": "33% (024/2024)"
+  },
+  {
+    "item": "ORACIRE+ Toothpaste",
+    "matched_alert": {
+      "alert_number": "041/2026",
+      "product_name": "ORACIRE+ Toothpaste (suspected counterfeit)",
+      "alert_date": "2026-08-19",
+      "n": 4,
+      "local": 4,
+      "norm": "oracire toothpaste suspected counterfeit",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Oral-B counterfeit toothpaste",
+    "matched_alert": null,
+    "partial": "67% (041/2026)"
+  },
+  {
+    "item": "Colgate counterfeit toothpaste",
+    "matched_alert": {
+      "alert_number": "022/2026",
+      "product_name": "Colgate Toothpaste (unregistered and suspected counterfeit)",
+      "alert_date": "2026-03-25",
+      "n": 2,
+      "local": 2,
+      "norm": "colgate toothpaste unregistered and suspected counterfeit",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Dove Beauty Cream Bar Soap",
+    "matched_alert": {
+      "alert_number": "035/2024",
+      "product_name": "Alert on the Recall of Dove Beauty Cream Bar Soap due to Butyphenyl Methylpropional (BMHCA) content",
+      "alert_date": "2024-08-30",
+      "n": 1,
+      "local": 1,
+      "norm": "alert on the recall of dove beauty cream bar soap due to butyphenyl methylpropional bmhca content",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Dove Hand and Deodorant Soap",
+    "matched_alert": null,
+    "partial": "50% (035/2024)"
+  },
+  {
+    "item": "Radox Care + Moisturise Liquid Hand Wash",
+    "matched_alert": {
+      "alert_number": "033/2024",
+      "product_name": "Alert on the Recall of Radox Care + Moisturise Liquid Hand Wash due to presence of Butyphenyl Methylpropional (BMHCA) Content",
+      "alert_date": "2024-08-22",
+      "n": 1,
+      "local": 1,
+      "norm": "alert on the recall of radox care moisturise liquid hand wash due to presence of butyphenyl methylpropional bmhca content",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Cowbell Our Milk",
+    "matched_alert": {
+      "alert_number": "026/2025",
+      "product_name": "Cowbell \"Our Milk\" Sachet Milk Powder 12g (counterfeit)",
+      "alert_date": "2025-08-10",
+      "n": 2,
+      "local": 2,
+      "norm": "cowbell our milk sachet milk powder 12g counterfeit",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Arla Dano Full Cream Milk",
+    "matched_alert": null,
+    "partial": "20% (008/2026)"
+  },
+  {
+    "item": "Peak Milk",
+    "matched_alert": {
+      "alert_number": "026/2023",
+      "product_name": "Alert on Counterfeit Peak Milk in Circulation",
+      "alert_date": "2023-09-01",
+      "n": 5,
+      "local": 0,
+      "norm": "alert on counterfeit peak milk in circulation",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Big Bull Rice",
+    "matched_alert": null,
+    "partial": "50% (034/2026)"
+  },
+  {
+    "item": "Cap Rice",
+    "matched_alert": {
+      "alert_number": "034/2026",
+      "product_name": "Niger Republic Imposes Import Ban on Bulmex Parboiled Rice from India due to Metallic Contamination",
+      "alert_date": "2026-07-12",
+      "n": 2,
+      "local": 2,
+      "norm": "niger republic imposes import ban on bulmex parboiled rice from india due to metallic contamination",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Stallion Rice",
+    "matched_alert": null,
+    "partial": "50% (034/2026)"
+  },
+  {
+    "item": "Royal Stallion Rice",
+    "matched_alert": null,
+    "partial": "33% (034/2026)"
+  },
+  {
+    "item": "Tomato Rice",
+    "matched_alert": null,
+    "partial": "50% (034/2026)"
+  },
+  {
+    "item": "Mama Pride Rice",
+    "matched_alert": null,
+    "partial": "33% (034/2026)"
+  },
+  {
+    "item": "BUA Rice",
+    "matched_alert": {
+      "alert_number": "034/2026",
+      "product_name": "Niger Republic Imposes Import Ban on Bulmex Parboiled Rice from India due to Metallic Contamination",
+      "alert_date": "2026-07-12",
+      "n": 2,
+      "local": 2,
+      "norm": "niger republic imposes import ban on bulmex parboiled rice from india due to metallic contamination",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Whippy Real Mayonnaise",
+    "matched_alert": null,
+    "partial": "67% (024/2023)"
+  },
+  {
+    "item": "Sprite 50cl",
+    "matched_alert": {
+      "alert_number": "022/2023",
+      "product_name": "Alert on Unwholesome Sprite 50cl Glass Bottle Batch number AZ6 22:32",
+      "alert_date": "2023-06-24",
+      "n": 1,
+      "local": 0,
+      "norm": "alert on unwholesome sprite 50cl glass bottle batch number az6 22 32",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Ginny Non-Dairy Creamer",
+    "matched_alert": null,
+    "partial": "67% (022/2024)"
+  },
+  {
+    "item": "Japata Alcoholic Bitters",
+    "matched_alert": null,
+    "partial": "33% (032/2026)"
+  },
+  {
+    "item": "Fanta",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Coca-Cola",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Schweppes",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Lacasera",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Hollandia Yoghurt",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Super Commando Energy",
+    "matched_alert": null,
+    "partial": "33% (032/2026)"
+  },
+  {
+    "item": "Feyrouz",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Amstel Malta",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Peak Sachet Milk",
+    "matched_alert": null,
+    "partial": "67% (026/2025)"
+  },
+  {
+    "item": "Peak Chocolate Drink",
+    "matched_alert": null,
+    "partial": "33% (032/2026)"
+  },
+  {
+    "item": "Miksi Sachet Milk",
+    "matched_alert": null,
+    "partial": "67% (026/2025)"
+  },
+  {
+    "item": "Cadbury Chocolate Drink",
+    "matched_alert": null,
+    "partial": "33% (032/2026)"
+  },
+  {
+    "item": "Ovaltine",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Palm Oil",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Cooking Oil",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Honey",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Milk",
+    "matched_alert": {
+      "alert_number": "008/2026",
+      "product_name": "Danone Nutricia Recalls Several Batches of Aptamil and Cow and Gate First Infant Milk and Follow-on Milk Formula Products Due To Potential Contamination with Cereulide Toxin",
+      "alert_date": "2026-02-13",
+      "n": 1,
+      "local": 1,
+      "norm": "danone nutricia recalls several batches of aptamil and cow and gate first infant milk and follow on milk formula products due to potential contamination with cereulide toxin",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Yoghurt",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Ground Pepper",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Spices",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Tomato Products",
+    "matched_alert": null,
+    "partial": "50% (043/2026)"
+  },
+  {
+    "item": "Wheat Flour",
+    "matched_alert": null,
+    "partial": "50% (025/2022)"
+  },
+  {
+    "item": "Yam Flour",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Beans",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Egusi/Melon",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Meat",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Poultry",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Fish",
+    "matched_alert": {
+      "alert_number": "https://nafdac.gov.ng/public-alert-no-0029-2018-ghanaian-health-authority-warns-against-consumption-of-puffer-fish/",
+      "product_name": "Public Alert No: 0029/2018 - Ghanaian Health Authority Warns Against Consumption Of Puffer Fish",
+      "alert_date": "2018-11-14",
+      "n": 1,
+      "local": 0,
+      "norm": "public alert no 0029 2018 ghanaian health authority warns against consumption of puffer fish",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Seafood",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Alcoholic Beverages",
+    "matched_alert": null,
+    "partial": "50% (032/2026)"
+  },
+  {
+    "item": "Petrol/PMS",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "ARTEMETRIN DS Tablets",
+    "matched_alert": {
+      "alert_number": "030A/2025",
+      "product_name": "Artemetrin DS Tablets 80/480mg",
+      "alert_date": "2025-09-19",
+      "n": 2,
+      "local": 2,
+      "norm": "artemetrin ds tablets 80 480mg",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "CIPROFIT 500",
+    "matched_alert": {
+      "alert_number": "030B/2025",
+      "product_name": "Ciprofit 500 Tablets",
+      "alert_date": "2025-09-19",
+      "n": 2,
+      "local": 2,
+      "norm": "ciprofit 500 tablets",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Postinor-2",
+    "matched_alert": null,
+    "partial": null
+  },
+  {
+    "item": "Amoxivue 500mg",
+    "matched_alert": {
+      "alert_number": "024/2025",
+      "product_name": "Amoxivue Amoxicillin 500mg Capsules",
+      "alert_date": "2025-08-06",
+      "n": 3,
+      "local": 3,
+      "norm": "amoxivue amoxicillin 500mg capsules",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Rosprazole Injection",
+    "matched_alert": {
+      "alert_number": "016/2025",
+      "product_name": "Alert on Counterfeit/Falsified Rosprazole (Rabeprazole Injection) 20mg",
+      "alert_date": "2025-05-31",
+      "n": 3,
+      "local": 3,
+      "norm": "alert on counterfeit falsified rosprazole rabeprazole injection 20mg",
+      "coverage": 1
+    },
+    "partial": null
+  },
+  {
+    "item": "Arla Dano Full Cream Milk Powd",
+    "matched_alert": null,
+    "partial": "17% (008/2026)"
+  },
+  {
+    "item": "Super Commando Energy Drink",
+    "matched_alert": null,
+    "partial": "50% (032/2026)"
+  }
+]

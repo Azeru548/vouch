@@ -1,0 +1,2362 @@
+[
+  {
+    "list_no": null,
+    "claim_name": "Noristerat Injection 200mg",
+    "claim_note": "",
+    "query_norm": "noristerat injection 200mg",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "006/2025",
+        "product_name": "Alert on the Sale of Counterfeit Noristerat Injection 200mg in Nigeria",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "006/2025",
+        "product_name": "Alert on the Sale of Counterfeit Noristerat Injection 200mg in Nigeria",
+        "score": 90
+      },
+      "in_registry": "noristerat",
+      "nearest_registry": {
+        "name": "noristerat",
+        "score": 90
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Cikatem",
+    "claim_note": "",
+    "query_norm": "cikatem",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "05/2025",
+        "product_name": "Cikatem Suspension 180/1080mg",
+        "score": 90,
+        "photos": 2
+      },
+      "alert_hit": {
+        "alert_number": "05/2025",
+        "product_name": "Cikatem Suspension 180/1080mg",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Paludex",
+    "claim_note": "",
+    "query_norm": "paludex",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "049/2024",
+        "product_name": "Sales and Distribution of Confirmed Counterfeit Paludex (Artemether/Lumefantrine ) Tablets (80mg/480mg) and Suspension (20mg/120mg)",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "049/2024",
+        "product_name": "Sales and Distribution of Confirmed Counterfeit Paludex (Artemether/Lumefantrine ) Tablets (80mg/480mg) and Suspension (20mg/120mg)",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Colamar",
+    "claim_note": "",
+    "query_norm": "colamar",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "031/2024",
+        "product_name": "Illegal Sale of Substandard and Falsified (SF) Colamar (Artemether/Lumefantrine 20/120mg) Oral Suspension",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "031/2024",
+        "product_name": "Illegal Sale of Substandard and Falsified (SF) Colamar (Artemether/Lumefantrine 20/120mg) Oral Suspension",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Aflotin 20/120",
+    "claim_note": "",
+    "query_norm": "aflotin 20 120",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "008/2025",
+        "product_name": "Alert on the Presence of Counterfeit Artemether/Lumefantrine Tablets Circulating Under Brand Name Aflotin 20/120 in Nigeria",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "008/2025",
+        "product_name": "Alert on the Presence of Counterfeit Artemether/Lumefantrine Tablets Circulating Under Brand Name Aflotin 20/120 in Nigeria",
+        "score": 90
+      },
+      "in_registry": "aflotin 40/240 tablets",
+      "nearest_registry": {
+        "name": "aflotin 40/240 tablets",
+        "score": 90
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Tandak Injection",
+    "claim_note": "",
+    "query_norm": "tandak injection",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "011/2024",
+        "product_name": "Alert on the Sale of Counterfeit Tandak Injection in Nigeria",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "011/2024",
+        "product_name": "Alert on the Sale of Counterfeit Tandak Injection in Nigeria",
+        "score": 90
+      },
+      "in_registry": "tandak injection",
+      "nearest_registry": {
+        "name": "tandak injection",
+        "score": 100
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Lins Meropenem Injection",
+    "claim_note": "",
+    "query_norm": "lins meropenem injection",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "021/2024",
+        "product_name": "Confirmed Falsified Lins Meropenem Injection Used in Abuja",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "021/2024",
+        "product_name": "Confirmed Falsified Lins Meropenem Injection Used in Abuja",
+        "score": 90
+      },
+      "in_registry": "meropenem injection",
+      "nearest_registry": {
+        "name": "meropenem injection",
+        "score": 100
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "OHEAL Ampicillin/Cloxacillin",
+    "claim_note": "",
+    "query_norm": "oheal ampicillin cloxacillin",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "020/2024",
+        "product_name": "Alert on Confirmed Falsified OHEAL Ampicillin and Cloxacillin Capsule",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "020/2024",
+        "product_name": "Alert on Confirmed Falsified OHEAL Ampicillin and Cloxacillin Capsule",
+        "score": 90
+      },
+      "in_registry": "onifam ampicillin & cloxacillin capsules",
+      "nearest_registry": {
+        "name": "onifam ampicillin & cloxacillin capsules",
+        "score": 86
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Giga-S Injection",
+    "claim_note": "",
+    "query_norm": "giga s injection",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "019/2024",
+        "product_name": "Alert on falsification of a batch of Giga-S Injection",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "019/2024",
+        "product_name": "Alert on falsification of a batch of Giga-S Injection",
+        "score": 90
+      },
+      "in_registry": "giga-s injection",
+      "nearest_registry": {
+        "name": "giga-s injection",
+        "score": 100
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Asian Ampicillin/Cloxacillin",
+    "claim_note": "",
+    "query_norm": "asian ampicillin cloxacillin",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "018/2024",
+        "product_name": "Information on the Illegal Manufacturing, Distribution, and Sale of Substandard and Falsified (SF) Paediatric Asian Ampicillin /Cloxacillin Oral Suspension and other Asian Paediatric Products",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "018/2024",
+        "product_name": "Information on the Illegal Manufacturing, Distribution, and Sale of Substandard and Falsified (SF) Paediatric Asian Ampicillin /Cloxacillin Oral Suspension and other Asian Paediatric Products",
+        "score": 90
+      },
+      "in_registry": "onifam ampicillin & cloxacillin capsules",
+      "nearest_registry": {
+        "name": "onifam ampicillin & cloxacillin capsules",
+        "score": 89
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "ZACEF-TZ Injection",
+    "claim_note": "",
+    "query_norm": "zacef tz injection",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "009/2024",
+        "product_name": "Alert on the Sale of Unregistered ZACEF-TZ Injection in Circulation in Nigeria",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "009/2024",
+        "product_name": "Alert on the Sale of Unregistered ZACEF-TZ Injection in Circulation in Nigeria",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Chloroquine Tablets",
+    "claim_note": "",
+    "query_norm": "chloroquine tablets",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "007/2024",
+        "product_name": "Alert on Suspected Falsified Chloroquine Tablets",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "007/2024",
+        "product_name": "Alert on Suspected Falsified Chloroquine Tablets",
+        "score": 90
+      },
+      "in_registry": "afrab chloroquine tablets",
+      "nearest_registry": {
+        "name": "afrab chloroquine tablets",
+        "score": 90
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Oxytocin Injection",
+    "claim_note": "",
+    "query_norm": "oxytocin injection",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "028/2025",
+        "product_name": "Alert on Unregistered/Falsified Oxytocin Injection",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "028/2025",
+        "product_name": "Alert on Unregistered/Falsified Oxytocin Injection",
+        "score": 90
+      },
+      "in_registry": "oxytocin injection",
+      "nearest_registry": {
+        "name": "oxytocin injection",
+        "score": 100
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Meronen 1g Injection",
+    "claim_note": "",
+    "query_norm": "meronen 1g injection",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "036/2023",
+        "product_name": "Alert on Counterfeit Meronem 1g Injection circulating in Nigeria",
+        "score": 95,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "036/2023",
+        "product_name": "Alert on Counterfeit Meronem 1g Injection circulating in Nigeria",
+        "score": 95
+      },
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Avastin",
+    "claim_note": "",
+    "query_norm": "avastin",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "015/2026",
+        "product_name": "Alert on Confirmed Counterfeit of Avastin 400mg/ 16ml and Tecentriq 1200mg/20ml in Nigeria",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "015/2026",
+        "product_name": "Alert on Confirmed Counterfeit of Avastin 400mg/ 16ml and Tecentriq 1200mg/20ml in Nigeria",
+        "score": 90
+      },
+      "in_registry": "avastin 100mg",
+      "nearest_registry": {
+        "name": "avastin 100mg",
+        "score": 90
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "PHESGO",
+    "claim_note": "",
+    "query_norm": "phesgo",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "014/2026",
+        "product_name": "Alert on Confirmed Counterfeits PHESGO 600mg With Batch Numbers B2346B16 and C3809C5",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "014/2026",
+        "product_name": "Alert on Confirmed Counterfeits PHESGO 600mg With Batch Numbers B2346B16 and C3809C5",
+        "score": 90
+      },
+      "in_registry": "phesgo 1200 mg/600 mg",
+      "nearest_registry": {
+        "name": "phesgo 1200 mg/600 mg",
+        "score": 90
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Mabthera",
+    "claim_note": "",
+    "query_norm": "mabthera",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "016/2026",
+        "product_name": "Alert on Confirmed Counterfeit of Mabthera 500mg/ 50ml in Nigeria",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "016/2026",
+        "product_name": "Alert on Confirmed Counterfeit of Mabthera 500mg/ 50ml in Nigeria",
+        "score": 90
+      },
+      "in_registry": "mabthera 100",
+      "nearest_registry": {
+        "name": "mabthera 100",
+        "score": 90
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Tecentriq",
+    "claim_note": "",
+    "query_norm": "tecentriq",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "015/2026",
+        "product_name": "Alert on Confirmed Counterfeit of Avastin 400mg/ 16ml and Tecentriq 1200mg/20ml in Nigeria",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "015/2026",
+        "product_name": "Alert on Confirmed Counterfeit of Avastin 400mg/ 16ml and Tecentriq 1200mg/20ml in Nigeria",
+        "score": 90
+      },
+      "in_registry": "tecentriq 1200mg/20ml vial",
+      "nearest_registry": {
+        "name": "tecentriq 1200mg/20ml vial",
+        "score": 90
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Perjeta",
+    "claim_note": "",
+    "query_norm": "perjeta",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "028/2024",
+        "product_name": "Alert on Confirmed Counterfeits of Perjeta in Nigeria",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "028/2024",
+        "product_name": "Alert on Confirmed Counterfeits of Perjeta in Nigeria",
+        "score": 90
+      },
+      "in_registry": "perjeta 420mg",
+      "nearest_registry": {
+        "name": "perjeta 420mg",
+        "score": 90
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Herceptin",
+    "claim_note": "",
+    "query_norm": "herceptin",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "017/2026",
+        "product_name": "Alert on Confirmed Counterfeit of Herceptin 600 mg in Nigeria",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "017/2026",
+        "product_name": "Alert on Confirmed Counterfeit of Herceptin 600 mg in Nigeria",
+        "score": 90
+      },
+      "in_registry": "herceptin 440mg",
+      "nearest_registry": {
+        "name": "herceptin 440mg",
+        "score": 90
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Combiart",
+    "claim_note": "",
+    "query_norm": "combiart",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "043/2024",
+        "product_name": "Alert on the Sale of Counterfeit COMBIART (Artemether + Lumefantrine 20/120mg) Dispersible Tablet in Nigeria",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "043/2024",
+        "product_name": "Alert on the Sale of Counterfeit COMBIART (Artemether + Lumefantrine 20/120mg) Dispersible Tablet in Nigeria",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Dostinex",
+    "claim_note": "",
+    "query_norm": "dostinex",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "007/2026",
+        "product_name": "Alert on Surveillance and mop up of Counterfeit Dostinex (0.5mg) Tablets Found in Circulation",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "007/2026",
+        "product_name": "Alert on Surveillance and mop up of Counterfeit Dostinex (0.5mg) Tablets Found in Circulation",
+        "score": 90
+      },
+      "in_registry": "dostinex tablets 0.5 mg",
+      "nearest_registry": {
+        "name": "dostinex tablets 0.5 mg",
+        "score": 90
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Ozempic",
+    "claim_note": "",
+    "query_norm": "ozempic",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "001/2024",
+        "product_name": "Alert on falsely labelled OZEMPIC (Semaglutide, 1 mg, solution for injection) Pens",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "001/2024",
+        "product_name": "Alert on falsely labelled OZEMPIC (Semaglutide, 1 mg, solution for injection) Pens",
+        "score": 90
+      },
+      "in_registry": "ozempic® 0.5 mg solution for injection in 1.5ml…",
+      "nearest_registry": {
+        "name": "ozempic® 0.5 mg solution for injection in 1.5ml…",
+        "score": 90
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Lantus SoloStar",
+    "claim_note": "",
+    "query_norm": "lantus solostar",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "047/2022",
+        "product_name": "Alert On The Distribution And Sale Of Falsified Lantus Solostar Solution For Injection In Prefilled Pens 100 I.U",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "047/2022",
+        "product_name": "Alert On The Distribution And Sale Of Falsified Lantus Solostar Solution For Injection In Prefilled Pens 100 I.U",
+        "score": 90
+      },
+      "in_registry": "lantus solostar solution for injection in a pre-filled pen",
+      "nearest_registry": {
+        "name": "lantus solostar solution for injection in a pre-filled pen",
+        "score": 90
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Daonil 5mg",
+    "claim_note": "",
+    "query_norm": "daonil 5mg",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "046/2022",
+        "product_name": "Alert on the Distribution and Sale of Falsified Daonil 5mg Tablets",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "046/2022",
+        "product_name": "Alert on the Distribution and Sale of Falsified Daonil 5mg Tablets",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Neo Medrol",
+    "claim_note": "",
+    "query_norm": "neo medrol",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "044/2022",
+        "product_name": "Counterfeit Neo Medrol found in Circulation in Nigeria",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "044/2022",
+        "product_name": "Counterfeit Neo Medrol found in Circulation in Nigeria",
+        "score": 90
+      },
+      "in_registry": "medrol",
+      "nearest_registry": {
+        "name": "medrol",
+        "score": 90
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Augmentin 625mg",
+    "claim_note": "",
+    "query_norm": "augmentin 625mg",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "024/2026",
+        "product_name": "Alert on Counterfeit Augmentin 625mg Tablets (Batch No. AC3N) in Nigeria",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "024/2026",
+        "product_name": "Alert on Counterfeit Augmentin 625mg Tablets (Batch No. AC3N) in Nigeria",
+        "score": 90
+      },
+      "in_registry": "augmentin tablets 625mg",
+      "nearest_registry": {
+        "name": "augmentin tablets 625mg",
+        "score": 90
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Artequin 600/750",
+    "claim_note": "",
+    "query_norm": "artequin 600 750",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "025/2023",
+        "product_name": "Presence of Suspected Counterfeit Artequin 600/750 Tablets in Circulation in Nigeria",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "025/2023",
+        "product_name": "Presence of Suspected Counterfeit Artequin 600/750 Tablets in Circulation in Nigeria",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Seretide Accuhaler",
+    "claim_note": "",
+    "query_norm": "seretide accuhaler",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "005/2024",
+        "product_name": "Sales of Unregistered Seretide Accuhaler on Instagram and Online Media",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "005/2024",
+        "product_name": "Sales of Unregistered Seretide Accuhaler on Instagram and Online Media",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "seretide evohaler",
+        "score": 80
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Tarivid",
+    "claim_note": "",
+    "query_norm": "tarivid",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "021/2025",
+        "product_name": "Alert on the Report of Unregistered Tarivid (Ofloxacin 200mg) found in Nigeria",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "021/2025",
+        "product_name": "Alert on the Report of Unregistered Tarivid (Ofloxacin 200mg) found in Nigeria",
+        "score": 90
+      },
+      "in_registry": "tarivid 200 mg tablet",
+      "nearest_registry": {
+        "name": "tarivid 200 mg tablet",
+        "score": 90
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Embacef",
+    "claim_note": "",
+    "query_norm": "embacef",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "029/2025",
+        "product_name": "Embacef 125 Powder for Oral Suspension",
+        "score": 90,
+        "photos": 2
+      },
+      "alert_hit": {
+        "alert_number": "029/2025",
+        "product_name": "Embacef 125 Powder for Oral Suspension",
+        "score": 90
+      },
+      "in_registry": "embacef 500 tablets",
+      "nearest_registry": {
+        "name": "embacef 500 tablets",
+        "score": 90
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Wonder Calcium",
+    "claim_note": "",
+    "query_norm": "wonder calcium",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "010/2025",
+        "product_name": "Alert on the Sale of a Fake Product Named Wonder Calcium by Health and Hygiene",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "010/2025",
+        "product_name": "Alert on the Sale of a Fake Product Named Wonder Calcium by Health and Hygiene",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "wonderize sanitary napkins (soft comfort)",
+        "score": 64
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Juhel Folic Acid Tablets",
+    "claim_note": "",
+    "query_norm": "juhel folic acid tablets",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "015/2025",
+        "product_name": "Recall of Substandard Juhel Folic Acid Tablet",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "015/2025",
+        "product_name": "Recall of Substandard Juhel Folic Acid Tablet",
+        "score": 90
+      },
+      "in_registry": "folic acid tablets",
+      "nearest_registry": {
+        "name": "folic acid tablets",
+        "score": 100
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Regpara 25mg",
+    "claim_note": "",
+    "query_norm": "regpara 25mg",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "012/2025",
+        "product_name": "Recall of Batches of Regpara Tablets 25mg due to the presence of impurity",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "012/2025",
+        "product_name": "Recall of Batches of Regpara Tablets 25mg due to the presence of impurity",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "pregab-q 25mg capsule",
+        "score": 75
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Apo-Amitriptyline",
+    "claim_note": "",
+    "query_norm": "apo amitriptyline",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "050/2024",
+        "product_name": "Alert on the Recall of Apo-Amitriptyline 10mg and 25mg Manufactured by Pharma Forte Singapore Pte Ltd.",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "050/2024",
+        "product_name": "Alert on the Recall of Apo-Amitriptyline 10mg and 25mg Manufactured by Pharma Forte Singapore Pte Ltd.",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Deekins Amoxycillin",
+    "claim_note": "",
+    "query_norm": "deekins amoxycillin",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "048/2024",
+        "product_name": "Alert on Recall of Deekins Amoxycillin 500mg Capsule Batch 4C639001",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "048/2024",
+        "product_name": "Alert on Recall of Deekins Amoxycillin 500mg Capsule Batch 4C639001",
+        "score": 90
+      },
+      "in_registry": "deekins amoxycillin capsules 500 mg",
+      "nearest_registry": {
+        "name": "deekins amoxycillin capsules 500 mg",
+        "score": 90
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Acetazolamide",
+    "claim_note": "",
+    "query_norm": "acetazolamide",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "047/2024",
+        "product_name": "Alert Recall Of Acetazolamide Tablets Usp 125mg, Manufactured By Rubicon Research Private Ltd",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "047/2024",
+        "product_name": "Alert Recall Of Acetazolamide Tablets Usp 125mg, Manufactured By Rubicon Research Private Ltd",
+        "score": 90
+      },
+      "in_registry": "acetazolamide 250 mg tablet",
+      "nearest_registry": {
+        "name": "acetazolamide 250 mg tablet",
+        "score": 90
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Pantogen",
+    "claim_note": "",
+    "query_norm": "pantogen",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "046/2024",
+        "product_name": "Alert on Recall of Two Batches of Pantogen Injection “Singtong” by Taiwanese FDA",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "046/2024",
+        "product_name": "Alert on Recall of Two Batches of Pantogen Injection “Singtong” by Taiwanese FDA",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Ryaltris",
+    "claim_note": "",
+    "query_norm": "ryaltris",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "042/2024",
+        "product_name": "Alert on Recall of Forty-Five Thousand (45,000) Unit of Ryaltris Nasal Spray Manufactured by Glenmark Pharmaceutical Inc",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "042/2024",
+        "product_name": "Alert on Recall of Forty-Five Thousand (45,000) Unit of Ryaltris Nasal Spray Manufactured by Glenmark Pharmaceutical Inc",
+        "score": 90
+      },
+      "in_registry": "ryaltris",
+      "nearest_registry": {
+        "name": "ryaltris",
+        "score": 100
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Simbrinza",
+    "claim_note": "",
+    "query_norm": "simbrinza",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "040/2024",
+        "product_name": "Alert on the Sale of Unregistered Simbrinza Eye Drop 10mg/ml + 2mg/ml (Brinzolamide+Brimonidine) in Nigeria",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "040/2024",
+        "product_name": "Alert on the Sale of Unregistered Simbrinza Eye Drop 10mg/ml + 2mg/ml (Brinzolamide+Brimonidine) in Nigeria",
+        "score": 90
+      },
+      "in_registry": "simbrinza eye drops",
+      "nearest_registry": {
+        "name": "simbrinza eye drops",
+        "score": 90
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Cardura XL",
+    "claim_note": "",
+    "query_norm": "cardura xl",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "038/2024",
+        "product_name": "Alert on Recall of Cardura XL (Doxazosin) Extended-Release Tablets",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "038/2024",
+        "product_name": "Alert on Recall of Cardura XL (Doxazosin) Extended-Release Tablets",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "OXYCONTIN 80mg",
+    "claim_note": "",
+    "query_norm": "oxycontin 80mg",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "007/2025",
+        "product_name": "Alert on Falsified OXYCONTIN 80mg identified in the WHO European Region",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "007/2025",
+        "product_name": "Alert on Falsified OXYCONTIN 80mg identified in the WHO European Region",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "rotem injection 80mg",
+        "score": 67
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Healmoxy 500mg",
+    "claim_note": "",
+    "query_norm": "healmoxy 500mg",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "017/2025",
+        "product_name": "Alert on Falsified Batches of Healmoxy Capsules 500mg found in Cameroon and Central African Republic (CAR)",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "017/2025",
+        "product_name": "Alert on Falsified Batches of Healmoxy Capsules 500mg found in Cameroon and Central African Republic (CAR)",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "regamol 500mg",
+        "score": 77
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Accu-Chek Instant Test",
+    "claim_note": "",
+    "query_norm": "accu chek instant test",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "013/2025",
+        "product_name": "Alert on the Circulation of Counterfeit Accu-Chek Instant Test Strips in Nigeria",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "013/2025",
+        "product_name": "Alert on the Circulation of Counterfeit Accu-Chek Instant Test Strips in Nigeria",
+        "score": 90
+      },
+      "in_registry": "accu-chek instant test strips",
+      "nearest_registry": {
+        "name": "accu-chek instant test strips",
+        "score": 90
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Prevenar 13",
+    "claim_note": "",
+    "query_norm": "prevenar 13",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "002/2024",
+        "product_name": "Pfizer warns against Tampered Expiry date on Prevenar 13 batch CL 3337",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "002/2024",
+        "product_name": "Pfizer warns against Tampered Expiry date on Prevenar 13 batch CL 3337",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Zovirax IV Infusion",
+    "claim_note": "",
+    "query_norm": "zovirax iv infusion",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "009/2025",
+        "product_name": "Voluntary Recall of Zovirax IV Infusion by GlaxoSmithKline (GSK) Limited Due to Potential Quality Defects",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "009/2025",
+        "product_name": "Voluntary Recall of Zovirax IV Infusion by GlaxoSmithKline (GSK) Limited Due to Potential Quality Defects",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Dexamethasone products",
+    "claim_note": "",
+    "query_norm": "dexamethasone products",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "041/2022",
+        "product_name": "Recall of substandard dexamethasone products detected in Anambra State, Nigeria",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "041/2022",
+        "product_name": "Recall of substandard dexamethasone products detected in Anambra State, Nigeria",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "delisa dexamethasone sodium phosphate injection",
+        "score": 77
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "DySPORT",
+    "claim_note": "",
+    "query_norm": "dysport",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "038/2022",
+        "product_name": "Alert on Falsified DYSPORT (Clostridium botulinum type A toxin-haemagglutinin complex) identified in the WHO Regions of Europe and Eastern Mediterranean",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "038/2022",
+        "product_name": "Alert on Falsified DYSPORT (Clostridium botulinum type A toxin-haemagglutinin complex) identified in the WHO Regions of Europe and Eastern Mediterranean",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Falsified paediatric cough syrups",
+    "claim_note": "",
+    "query_norm": "falsified paediatric cough syrups",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "039/2022",
+        "product_name": "Alert on Substandard (contaminated) paediatric cough syrups circulating in Gambia",
+        "score": 85,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "039/2022",
+        "product_name": "Alert on Substandard (contaminated) paediatric cough syrups circulating in Gambia",
+        "score": 85
+      },
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "nalis cough syrup",
+        "score": 82
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Falsified/contaminated Propylene Glycol",
+    "claim_note": "",
+    "query_norm": "falsified contaminated propylene glycol",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "017/2024",
+        "product_name": "Alert on Falsified (contaminated) USP/EP PROPYLENE GLYCOL identified in the WHO Eastern Mediterranean Region",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "017/2024",
+        "product_name": "Alert on Falsified (contaminated) USP/EP PROPYLENE GLYCOL identified in the WHO Eastern Mediterranean Region",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "prolene polypropylene blue monofilament non-absorbable",
+        "score": 46
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Falsified medicines containing ethylene glycol/diethylene glycol",
+    "claim_note": "",
+    "query_norm": "falsified medicines containing ethylene glycol diethylene glycol",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Tamral 225 Tablets",
+    "claim_note": "",
+    "query_norm": "tamral 225 tablets",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Tamral 250mg Tablets",
+    "claim_note": "",
+    "query_norm": "tamral 250mg tablets",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": "leveget 250mg tablets",
+      "nearest_registry": {
+        "name": "leveget 250mg tablets",
+        "score": 86
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Tramadol 120mg Capsules",
+    "claim_note": "",
+    "query_norm": "tramadol 120mg capsules",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "https://nafdac.gov.ng/restricting-use-of-codeine-and-tramadol-in-children-recommending-against-use-in-breastfeeding-women-2/",
+        "product_name": "Restricting Use Of Codeine And Tramadol In Children, Recommending Against Use In Breastfeeding Women",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "https://nafdac.gov.ng/restricting-use-of-codeine-and-tramadol-in-children-recommending-against-use-in-breastfeeding-women-2/",
+        "product_name": "Restricting Use Of Codeine And Tramadol In Children, Recommending Against Use In Breastfeeding Women",
+        "score": 90
+      },
+      "in_registry": "secotramadol 100 mg capsule",
+      "nearest_registry": {
+        "name": "secotramadol 100 mg capsule",
+        "score": 91
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Tramadol 225mg Tablets",
+    "claim_note": "",
+    "query_norm": "tramadol 225mg tablets",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "https://nafdac.gov.ng/restricting-use-of-codeine-and-tramadol-in-children-recommending-against-use-in-breastfeeding-women-2/",
+        "product_name": "Restricting Use Of Codeine And Tramadol In Children, Recommending Against Use In Breastfeeding Women",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "https://nafdac.gov.ng/restricting-use-of-codeine-and-tramadol-in-children-recommending-against-use-in-breastfeeding-women-2/",
+        "product_name": "Restricting Use Of Codeine And Tramadol In Children, Recommending Against Use In Breastfeeding Women",
+        "score": 90
+      },
+      "in_registry": "ac-tramadol capsule",
+      "nearest_registry": {
+        "name": "ac-tramadol capsule",
+        "score": 90
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Really Extra Diclofenac 50mg",
+    "claim_note": "",
+    "query_norm": "really extra diclofenac 50mg",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "diclofenac gel",
+        "score": 79
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Relity Extra Diclofenac 50mg",
+    "claim_note": "",
+    "query_norm": "relity extra diclofenac 50mg",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "diclofenac gel",
+        "score": 79
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Coglaet ActivGel 100g",
+    "claim_note": "",
+    "query_norm": "coglaet activgel 100g",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Coglaet Herbal 100g",
+    "claim_note": "",
+    "query_norm": "coglaet herbal 100g",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "betasil herbal cough syrup",
+        "score": 58
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "ORACIRE+ Toothpaste",
+    "claim_note": "",
+    "query_norm": "oracire toothpaste",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "041/2026",
+        "product_name": "ORACIRE+ Toothpaste (suspected counterfeit)",
+        "score": 90,
+        "photos": 2
+      },
+      "alert_hit": {
+        "alert_number": "041/2026",
+        "product_name": "ORACIRE+ Toothpaste (suspected counterfeit)",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Oral-B counterfeit toothpaste",
+    "claim_note": "",
+    "query_norm": "oral b counterfeit toothpaste",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "041/2026",
+        "product_name": "ORACIRE+ Toothpaste (suspected counterfeit)",
+        "score": 88,
+        "photos": 2
+      },
+      "alert_hit": {
+        "alert_number": "041/2026",
+        "product_name": "ORACIRE+ Toothpaste (suspected counterfeit)",
+        "score": 88
+      },
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "oral b pro-expert toothbrush",
+        "score": 64
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Colgate counterfeit toothpaste",
+    "claim_note": "",
+    "query_norm": "colgate counterfeit toothpaste",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "022/2026",
+        "product_name": "Colgate Toothpaste (unregistered and suspected counterfeit)",
+        "score": 90,
+        "photos": 2
+      },
+      "alert_hit": {
+        "alert_number": "022/2026",
+        "product_name": "Colgate Toothpaste (unregistered and suspected counterfeit)",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "colgate double action toothbrush (medium)",
+        "score": 60
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Dove Beauty Cream Bar Soap",
+    "claim_note": "",
+    "query_norm": "dove beauty cream bar soap",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "035/2024",
+        "product_name": "Alert on the Recall of Dove Beauty Cream Bar Soap due to Butyphenyl Methylpropional (BMHCA) content",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "035/2024",
+        "product_name": "Alert on the Recall of Dove Beauty Cream Bar Soap due to Butyphenyl Methylpropional (BMHCA) content",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "skin beauty instant hand sanitizer",
+        "score": 54
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Dove Hand and Deodorant Soap",
+    "claim_note": "",
+    "query_norm": "dove hand and deodorant soap",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "018/2025",
+        "product_name": "Alert on the Ban of Dove Hand and Deodorant Soap due to Butylphenyl Methylpropional (BMHCA) Contamination",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "018/2025",
+        "product_name": "Alert on the Ban of Dove Hand and Deodorant Soap due to Butylphenyl Methylpropional (BMHCA) Contamination",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "candelax protect hands and surface sanitizer spray and gel",
+        "score": 61
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Radox Care + Moisturise Liquid Hand Wash",
+    "claim_note": "",
+    "query_norm": "radox care moisturise liquid hand wash",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "033/2024",
+        "product_name": "Alert on the Recall of Radox Care + Moisturise Liquid Hand Wash due to presence of Butyphenyl Methylpropional (BMHCA) Content",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "033/2024",
+        "product_name": "Alert on the Recall of Radox Care + Moisturise Liquid Hand Wash due to presence of Butyphenyl Methylpropional (BMHCA) Content",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "amlocare 5",
+        "score": 70
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Cowbell Our Milk",
+    "claim_note": "",
+    "query_norm": "cowbell our milk",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "026/2025",
+        "product_name": "Cowbell \"Our Milk\" Sachet Milk Powder 12g (counterfeit)",
+        "score": 90,
+        "photos": 2
+      },
+      "alert_hit": {
+        "alert_number": "026/2025",
+        "product_name": "Cowbell \"Our Milk\" Sachet Milk Powder 12g (counterfeit)",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "bio-milk",
+        "score": 75
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Arla Dano Full Cream Milk",
+    "claim_note": "",
+    "query_norm": "arla dano full cream milk",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "003/2024",
+        "product_name": "Alert on Sale of Counterfeit Arla Dano Full Cream Milk Powder- 14g Sachet Across Nigerian Market",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "003/2024",
+        "product_name": "Alert on Sale of Counterfeit Arla Dano Full Cream Milk Powder- 14g Sachet Across Nigerian Market",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "darrow`s full strength intravenous infusion (strength format)",
+        "score": 52
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Peak Milk",
+    "claim_note": "",
+    "query_norm": "peak milk",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "026/2023",
+        "product_name": "Alert on Counterfeit Peak Milk in Circulation",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "026/2023",
+        "product_name": "Alert on Counterfeit Peak Milk in Circulation",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "fressia baby wet wipes (milk & honey)",
+        "score": 78
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Big Bull Rice",
+    "claim_note": "",
+    "query_norm": "big bull rice",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "polarice gel",
+        "score": 56
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Cap Rice",
+    "claim_note": "",
+    "query_norm": "cap rice",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "034/2026",
+        "product_name": "Niger Republic Imposes Import Ban on Bulmex Parboiled Rice from India due to Metallic Contamination",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "034/2026",
+        "product_name": "Niger Republic Imposes Import Ban on Bulmex Parboiled Rice from India due to Metallic Contamination",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "piricet 10mg tablets",
+        "score": 63
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Stallion Rice",
+    "claim_note": "",
+    "query_norm": "stallion rice",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "geekuf expectorant syrup with liquorice (strength format)",
+        "score": 62
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Royal Stallion Rice",
+    "claim_note": "",
+    "query_norm": "royal stallion rice",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "royalkel tablet (check strengths)",
+        "score": 63
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Tomato Rice",
+    "claim_note": "",
+    "query_norm": "tomato rice",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "africef sb",
+        "score": 56
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Mama Pride Rice",
+    "claim_note": "",
+    "query_norm": "mama pride rice",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": "tripride 2",
+      "nearest_registry": {
+        "name": "tripride 2",
+        "score": 88
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "BUA Rice",
+    "claim_note": "",
+    "query_norm": "bua rice",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "034/2026",
+        "product_name": "Niger Republic Imposes Import Ban on Bulmex Parboiled Rice from India due to Metallic Contamination",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "034/2026",
+        "product_name": "Niger Republic Imposes Import Ban on Bulmex Parboiled Rice from India due to Metallic Contamination",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "africef 1 gm",
+        "score": 63
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Whippy Real Mayonnaise",
+    "claim_note": "",
+    "query_norm": "whippy real mayonnaise",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "024/2023",
+        "product_name": "Alert on Unwholesome Whippy Real Mayonaisse",
+        "score": 95,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "024/2023",
+        "product_name": "Alert on Unwholesome Whippy Real Mayonaisse",
+        "score": 95
+      },
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "realflex",
+        "score": 50
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Sprite 50cl",
+    "claim_note": "",
+    "query_norm": "sprite 50cl",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "022/2023",
+        "product_name": "Alert on Unwholesome Sprite 50cl Glass Bottle Batch number AZ6 22:32",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "022/2023",
+        "product_name": "Alert on Unwholesome Sprite 50cl Glass Bottle Batch number AZ6 22:32",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Ginny Non-Dairy Creamer",
+    "claim_note": "",
+    "query_norm": "ginny non dairy creamer",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "022/2024",
+        "product_name": "Illegal Distribution and Sale of Falsified Brand of Ginny Non-DIARY Creamer in Nigeria",
+        "score": 96,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "022/2024",
+        "product_name": "Illegal Distribution and Sale of Falsified Brand of Ginny Non-DIARY Creamer in Nigeria",
+        "score": 96
+      },
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Japata Alcoholic Bitters",
+    "claim_note": "",
+    "query_norm": "japata alcoholic bitters",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "027/2022",
+        "product_name": "Adulterated Lots of Japata Alcoholic Bitters 100 ml (all variants) produced by Chigodson International Company Limited, Lagos",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "027/2022",
+        "product_name": "Adulterated Lots of Japata Alcoholic Bitters 100 ml (all variants) produced by Chigodson International Company Limited, Lagos",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "nino alcoholic iodine (strength format)",
+        "score": 58
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Fanta",
+    "claim_note": "",
+    "query_norm": "fanta",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": "fantastik ject disposable needles (23 g x 1 1/4)",
+      "nearest_registry": {
+        "name": "fantastik ject disposable needles (23 g x 1 1/4)",
+        "score": 100
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Coca-Cola",
+    "claim_note": "",
+    "query_norm": "coca cola",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "ku-chi ku-chi chocolate flavoured condoms",
+        "score": 67
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Schweppes",
+    "claim_note": "",
+    "query_norm": "schweppes",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Lacasera",
+    "claim_note": "",
+    "query_norm": "lacasera",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Hollandia Yoghurt",
+    "claim_note": "",
+    "query_norm": "hollandia yoghurt",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Super Commando Energy",
+    "claim_note": "",
+    "query_norm": "super commando energy",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "besense sanitary pads heavy free move super dry",
+        "score": 60
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Feyrouz",
+    "claim_note": "",
+    "query_norm": "feyrouz",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Amstel Malta",
+    "claim_note": "",
+    "query_norm": "amstel malta",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Peak Sachet Milk",
+    "claim_note": "",
+    "query_norm": "peak sachet milk",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "026/2025",
+        "product_name": "Cowbell \"Our Milk\" Sachet Milk Powder 12g (counterfeit)",
+        "score": 88,
+        "photos": 2
+      },
+      "alert_hit": {
+        "alert_number": "026/2025",
+        "product_name": "Cowbell \"Our Milk\" Sachet Milk Powder 12g (counterfeit)",
+        "score": 88
+      },
+      "in_registry": "nexium 10 mg sachets",
+      "nearest_registry": {
+        "name": "nexium 10 mg sachets",
+        "score": 88
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Peak Chocolate Drink",
+    "claim_note": "",
+    "query_norm": "peak chocolate drink",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "ku-chi ku-chi chocolate flavoured condoms",
+        "score": 55
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Miksi Sachet Milk",
+    "claim_note": "",
+    "query_norm": "miksi sachet milk",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "026/2025",
+        "product_name": "Cowbell \"Our Milk\" Sachet Milk Powder 12g (counterfeit)",
+        "score": 88,
+        "photos": 2
+      },
+      "alert_hit": {
+        "alert_number": "026/2025",
+        "product_name": "Cowbell \"Our Milk\" Sachet Milk Powder 12g (counterfeit)",
+        "score": 88
+      },
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "bio-milk",
+        "score": 63
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Cadbury Chocolate Drink",
+    "claim_note": "",
+    "query_norm": "cadbury chocolate drink",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "ku-chi ku-chi chocolate flavoured condoms",
+        "score": 57
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Ovaltine",
+    "claim_note": "",
+    "query_norm": "ovaltine",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Palm Oil",
+    "claim_note": "",
+    "query_norm": "palm oil",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "sinocare palmlab blood lipid test strip",
+        "score": 63
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Cooking Oil",
+    "claim_note": "",
+    "query_norm": "cooking oil",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "039/2025",
+        "product_name": "Substandard and unregistered edible oils",
+        "score": 90,
+        "photos": 3
+      },
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Honey",
+    "claim_note": "",
+    "query_norm": "honey",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "008/2018",
+        "product_name": "Public Alert No: 08/2018 Authorities Warn Against The Consumption Of Wales Golden Honey And Macum Eqimedyumly Honey",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "008/2018",
+        "product_name": "Public Alert No: 08/2018 Authorities Warn Against The Consumption Of Wales Golden Honey And Macum Eqimedyumly Honey",
+        "score": 90
+      },
+      "in_registry": "fressia baby wet wipes (milk & honey)",
+      "nearest_registry": {
+        "name": "fressia baby wet wipes (milk & honey)",
+        "score": 90
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Milk",
+    "claim_note": "",
+    "query_norm": "milk",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "021/2022",
+        "product_name": "Continental Mills Recalls Walmart Great Value Buttermilk Pancake & Waffle Mix Due To Possible Foreign Material Contamination",
+        "score": 100,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "021/2022",
+        "product_name": "Continental Mills Recalls Walmart Great Value Buttermilk Pancake & Waffle Mix Due To Possible Foreign Material Contamination",
+        "score": 100
+      },
+      "in_registry": "fressia baby wet wipes (milk & honey)",
+      "nearest_registry": {
+        "name": "fressia baby wet wipes (milk & honey)",
+        "score": 90
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Yoghurt",
+    "claim_note": "",
+    "query_norm": "yoghurt",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Ground Pepper",
+    "claim_note": "",
+    "query_norm": "ground pepper",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "gaviscon peppermint liquid sachet_",
+        "score": 69
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Spices",
+    "claim_note": "",
+    "query_norm": "spices",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Tomato Products",
+    "claim_note": "",
+    "query_norm": "tomato products",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Wheat Flour",
+    "claim_note": "",
+    "query_norm": "wheat flour",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Yam Flour",
+    "claim_note": "",
+    "query_norm": "yam flour",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Beans",
+    "claim_note": "",
+    "query_norm": "beans",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Egusi/Melon",
+    "claim_note": "",
+    "query_norm": "egusi melon",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Meat",
+    "claim_note": "",
+    "query_norm": "meat",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "005/2018",
+        "product_name": "Contaminated Meat Products From South Africa",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "005/2018",
+        "product_name": "Contaminated Meat Products From South Africa",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Poultry",
+    "claim_note": "",
+    "query_norm": "poultry",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "https://nafdac.gov.ng/hongkong-government-bans-importation-of-poultry-products-from-italy/",
+        "product_name": "Hongkong Government Bans Importation Of Poultry Products From Italy",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "https://nafdac.gov.ng/hongkong-government-bans-importation-of-poultry-products-from-italy/",
+        "product_name": "Hongkong Government Bans Importation Of Poultry Products From Italy",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Fish",
+    "claim_note": "",
+    "query_norm": "fish",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "https://nafdac.gov.ng/public-alert-no-0029-2018-ghanaian-health-authority-warns-against-consumption-of-puffer-fish/",
+        "product_name": "Public Alert No: 0029/2018 - Ghanaian Health Authority Warns Against Consumption Of Puffer Fish",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "https://nafdac.gov.ng/public-alert-no-0029-2018-ghanaian-health-authority-warns-against-consumption-of-puffer-fish/",
+        "product_name": "Public Alert No: 0029/2018 - Ghanaian Health Authority Warns Against Consumption Of Puffer Fish",
+        "score": 90
+      },
+      "in_registry": "omega 3 fish oil_",
+      "nearest_registry": {
+        "name": "omega 3 fish oil_",
+        "score": 90
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Seafood",
+    "claim_note": "",
+    "query_norm": "seafood",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Alcoholic Beverages",
+    "claim_note": "",
+    "query_norm": "alcoholic beverages",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "nino alcoholic iodine (strength format)",
+        "score": 63
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Petrol/PMS",
+    "claim_note": "",
+    "query_norm": "petrol pms",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "ARTEMETRIN DS Tablets",
+    "claim_note": "",
+    "query_norm": "artemetrin ds tablets",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "030A/2025",
+        "product_name": "Artemetrin DS Tablets 80/480mg",
+        "score": 90,
+        "photos": 2
+      },
+      "alert_hit": {
+        "alert_number": "030A/2025",
+        "product_name": "Artemetrin DS Tablets 80/480mg",
+        "score": 90
+      },
+      "in_registry": "artemetrin ds tablet",
+      "nearest_registry": {
+        "name": "artemetrin ds tablet",
+        "score": 90
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "CIPROFIT 500",
+    "claim_note": "",
+    "query_norm": "ciprofit 500",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "030B/2025",
+        "product_name": "Ciprofit 500 Tablets",
+        "score": 90,
+        "photos": 2
+      },
+      "alert_hit": {
+        "alert_number": "030B/2025",
+        "product_name": "Ciprofit 500 Tablets",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Postinor-2",
+    "claim_note": "",
+    "query_norm": "postinor 2",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "027/2025",
+        "product_name": "Alert on Confirmed Counterfeit Postinor2 (Levonorgestrel 0.75mg) in Nigeria",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "027/2025",
+        "product_name": "Alert on Confirmed Counterfeit Postinor2 (Levonorgestrel 0.75mg) in Nigeria",
+        "score": 90
+      },
+      "in_registry": "postinor 2",
+      "nearest_registry": {
+        "name": "postinor 2",
+        "score": 100
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Amoxivue 500mg",
+    "claim_note": "",
+    "query_norm": "amoxivue 500mg",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "024/2025",
+        "product_name": "Amoxivue Amoxicillin 500mg Capsules",
+        "score": 90,
+        "photos": 2
+      },
+      "alert_hit": {
+        "alert_number": "024/2025",
+        "product_name": "Amoxivue Amoxicillin 500mg Capsules",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "analife paracetamol 500mg",
+        "score": 75
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Rosprazole Injection",
+    "claim_note": "",
+    "query_norm": "rosprazole injection",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "016/2025",
+        "product_name": "Alert on Counterfeit/Falsified Rosprazole (Rabeprazole Injection) 20mg",
+        "score": 90,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "016/2025",
+        "product_name": "Alert on Counterfeit/Falsified Rosprazole (Rabeprazole Injection) 20mg",
+        "score": 90
+      },
+      "in_registry": null,
+      "nearest_registry": null
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Arla Dano Full Cream Milk Powd",
+    "claim_note": "",
+    "query_norm": "arla dano full cream milk powd",
+    "local": {
+      "known_fake_hit": {
+        "alert_number": "003/2024",
+        "product_name": "Alert on Sale of Counterfeit Arla Dano Full Cream Milk Powder- 14g Sachet Across Nigerian Market",
+        "score": 100,
+        "photos": 0
+      },
+      "alert_hit": {
+        "alert_number": "003/2024",
+        "product_name": "Alert on Sale of Counterfeit Arla Dano Full Cream Milk Powder- 14g Sachet Across Nigerian Market",
+        "score": 100
+      },
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "full strength darrow’s",
+        "score": 48
+      }
+    }
+  },
+  {
+    "list_no": null,
+    "claim_name": "Super Commando Energy Drink",
+    "claim_note": "",
+    "query_norm": "super commando energy drink",
+    "local": {
+      "known_fake_hit": null,
+      "alert_hit": null,
+      "in_registry": null,
+      "nearest_registry": {
+        "name": "super + care gynaecology gloves",
+        "score": 54
+      }
+    }
+  }
+]

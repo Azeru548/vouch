@@ -7,6 +7,7 @@ const { databasePath: DB_PATH, cachePath: CACHE_PATH, port: PORT, visionModel: V
 const { ensureReportsTable } = require('./scripts/reports_schema');
 const { ensureHazardTable } = require('./scripts/hazard_schema');
 const { ensureKnownFakesTable, parseJsonArray } = require('./scripts/fakes_schema');
+const { ensureEnforcementTable } = require('./scripts/enforcement_schema');
 const { APPEARANCE_PROMPT, cleanAppearanceFields } = require('./scripts/fake_appearance');
 const { runSync, fetchIndex, guardLiveSummary } = require('./scripts/alert_sync');
 const { timingSafeEqual } = require('node:crypto');
@@ -34,6 +35,7 @@ const reportsDb = new DatabaseSync(DB_PATH);
 ensureReportsTable(reportsDb);
 ensureHazardTable(reportsDb);
 ensureKnownFakesTable(reportsDb);
+ensureEnforcementTable(reportsDb);
 const cacheDb = new DatabaseSync(CACHE_PATH);
 cacheDb.exec(`
   CREATE TABLE IF NOT EXISTS napams_cache (
@@ -99,6 +101,20 @@ function imageContent(images) {
   return images.map((image) => ({ type: 'image_url', image_url: { url: image } }));
 }
 
+// Groq's free tier caps vision input at ~7,000 tokens/minute and answers a photo
+// set over that cap with 429. That is *busy*, not *broken*, and the old code
+// reported it as a 502 "service is unavailable" — telling users the photo
+// reader was down when all it needed was a few seconds' wait. Groq states the
+// wait in the error text ("Please try again in 13.98s"), so pass it straight on.
+function visionUpstreamError(upstream, body) {
+  if (upstream.status === 429) {
+    const hint = JSON.stringify(body || '').match(/try again in\s+([\d.]+)\s*s/i);
+    const retryAfter = hint ? Math.ceil(Number(hint[1])) : 15;
+    return { status: 429, code: 'vision_rate_limited', retryAfter, detail: 'Photo reading is busy. Try again in a few seconds.' };
+  }
+  return { status: 502, code: 'vision_upstream_error', detail: 'Photo reading service is unavailable.' };
+}
+
 app.post('/api/extract', async (req, res) => {
   if (!GROQ_KEY) {
     return res.status(503).json({ error: 'vision_not_configured', detail: 'Set GROQ_API_KEY on the server to enable photo extraction.' });
@@ -158,7 +174,9 @@ app.post('/api/extract', async (req, res) => {
 
     const body = await upstream.json();
     if (!upstream.ok) {
-      return res.status(502).json({ error: 'vision_upstream_error', detail: 'Photo reading service is unavailable.' });
+      const err = visionUpstreamError(upstream, body);
+      if (err.retryAfter) res.set('Retry-After', String(err.retryAfter));
+      return res.status(err.status).json({ error: err.code, detail: err.detail, ...(err.retryAfter ? { retry_after_seconds: err.retryAfter } : {}) });
     }
 
     const raw = body?.choices?.[0]?.message?.content ?? '';
@@ -242,7 +260,9 @@ app.post('/api/describe', async (req, res) => {
     });
 
     if (!upstream.ok) {
-      return res.status(502).json({ error: 'vision_upstream_error', detail: 'Pack description service is unavailable.' });
+      const err = visionUpstreamError(upstream, null);
+      if (err.retryAfter) res.set('Retry-After', String(err.retryAfter));
+      return res.status(err.status).json({ error: err.code, detail: err.retryAfter ? 'Photo reading is busy. Try again in a few seconds.' : 'Pack description service is unavailable.', ...(err.retryAfter ? { retry_after_seconds: err.retryAfter } : {}) });
     }
 
     const body = await upstream.json();
@@ -603,6 +623,20 @@ const GENERIC_STOPWORDS = new Set([
   'sachet', 'sachets', 'oral', 'pack', 'bottle', 'inj', 'tab', 'cap', 'dt',
 ]);
 
+// Words that describe the ALERT rather than identify the PRODUCT. Two alerts can
+// share "counterfeit toothpaste" and still be about entirely different brands, so
+// these may not be allowed to carry a match on their own.
+const HAZARD_WORDS = new Set([
+  'counterfeit', 'counterfeits', 'falsified', 'fake', 'substandard', 'unwholesome',
+  'suspected', 'confirmed', 'illegal', 'unregistered', 'banned', 'recall', 'recalled',
+  'alert', 'alerts', 'notice', 'presence', 'circulation', 'sale', 'distribution',
+  'identified', 'detected', 'batch', 'batches', 'product', 'products', 'warning',
+]);
+
+// Function words a shopper may prepend ("the Avastin", "fake Tramadol 225mg").
+// They say nothing about identity, so they are skipped when looking for the brand.
+const LEADING_NOISE = new Set(['the', 'a', 'an', 'my', 'this', 'that', 'some', 'of', 'for', 'and', 'new']);
+
 // Shoppers type the generic name printed on the strip ("pantoprazole 40mg
 // tablets"); regulators name recalls by brand ("Panto-Denk"). Fuzzy string
 // distance cannot bridge that (34/100), so a second rule scores a hit when
@@ -610,13 +644,30 @@ const GENERIC_STOPWORDS = new Set([
 // strengths — appears as a whole word in the candidate. Whole-word is the
 // safety: "pantoprazole" must never half-match "ampicillin".
 function nameMatchScore(queryNorm, candidateNorm) {
+  const candidateWords = new Set(candidateNorm.split(/[^a-z0-9]+/));
+
+  // A shopper types the BRAND first, so the first meaningful word of the query is
+  // the strongest identity signal there is. If this alert's title does not
+  // contain it, the alert is about something else and neither rule below may
+  // stand — "oral b counterfeit toothpaste" scored 86 against the ORACIRE+ alert
+  // on nothing but the shared class word "toothpaste" and the shared hazard word
+  // "counterfeit", and "Cap Rice" scored 90 against a Bulmex rice alert.
+  //
+  // This is a CAP, applied to whichever branch produces the score. It can only
+  // lower a score, never raise one.
+  const firstWord = queryNorm.split(/[^a-z0-9]+/)
+    .find((w) => w.length >= 2 && !HAZARD_WORDS.has(w) && !LEADING_NOISE.has(w));
+  const brandAbsent = Boolean(firstWord) && !candidateWords.has(firstWord);
+
   const fuzzy = fuzz.token_set_ratio(queryNorm, candidateNorm);
-  if (fuzzy >= 85) return fuzzy;
+  if (fuzzy >= 85) return brandAbsent ? 84 : fuzzy;
+
   const queryWords = queryNorm.split(/[^a-z0-9]+/)
     .filter((word) => word.length >= 4 && !GENERIC_STOPWORDS.has(word) && !/^\d/.test(word));
   if (queryWords.length === 0) return 0;
-  const candidateWords = new Set(candidateNorm.split(/[^a-z0-9]+/));
-  return queryWords.every((word) => candidateWords.has(word)) ? 90 : 0;
+  const wholeWordHit = queryWords.every((word) => candidateWords.has(word));
+  if (!wholeWordHit) return 0;
+  return brandAbsent ? 84 : 90;
 }
 
 // All the names an alert can be matched on: the register title plus the
@@ -647,6 +698,66 @@ const selectKnownFakes = reportsDb.prepare(
           hazard, batches, source_url, photos_json, source_country
    FROM known_fakes WHERE source_country = ?`
 );
+
+const selectEnforcementActions = reportsDb.prepare(
+  `SELECT action_key, authority, action_date, location, evidence_class, summary, brands,
+          evidence_note, source_url, source_publisher, source_country
+   FROM enforcement_actions WHERE finding_status = 'action_taken' AND source_country = ?`
+);
+
+// Enforcement actions are a weaker class of evidence than a public alert: a raid
+// or destruction exercise proves counterfeits of a brand exist, but names no
+// batch and carries no alert number. They are attached to a result as a dated,
+// sourced note and can never change a verdict.
+//
+// Matching is deliberately stricter than the known-fake library, because these
+// rows cover ordinary brands (Fanta, Sprite, Ovaltine) rather than obscure
+// counterfeit names — a loose match here would put a note under half the
+// products in the country.
+//
+// A fuzzy score is the wrong tool: `token_set_ratio` rewards containment, so the
+// bare word "rice" scored 100 against "Big Bull Rice" — the same shared-generic
+// -word trap that once matched "Cap Rice" to a parboiled-rice ban. Even dropping
+// generic words is not enough, because "tomato paste" then half-matched "Tomato
+// Rice". So the rule is the strict one: every word of the brand name must be
+// present in the query as a whole word. Short forms a shopper actually types
+// ("Big Bull", "Peak", "Miksi") are stored as explicit extra brand entries
+// rather than being guessed at match time.
+function brandWords(brand) {
+  return normalizeProductName(brand)
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .split(' ')
+    .filter(Boolean);
+}
+
+function enforcementMatches(normName, country = 'NG') {
+  if (!normName) return [];
+  const queryWords = new Set(normName.replace(/[^\p{L}\p{N}\s]/gu, ' ').split(' ').filter(Boolean));
+  const notes = [];
+  for (const row of selectEnforcementActions.all(country)) {
+    const matched = [];
+    for (const brand of parseJsonArray(row.brands)) {
+      const words = brandWords(brand);
+      if (words.length === 0) continue;
+      if (words.every((word) => queryWords.has(word))) matched.push(brand);
+    }
+    if (matched.length === 0) continue;
+    notes.push({
+      action_key: row.action_key,
+      authority: row.authority,
+      action_date: row.action_date,
+      location: row.location,
+      evidence_class: row.evidence_class,
+      summary: row.summary,
+      matched_brands: matched,
+      evidence_note: row.evidence_note,
+      source_url: row.source_url,
+      source_publisher: row.source_publisher,
+      source_country: row.source_country,
+    });
+  }
+  return notes.sort((a, b) => a.action_date.localeCompare(b.action_date));
+}
 
 // Threat-intel fallback against the known-fake library, for packs that have no
 // registration number to check — unregistered food, drinks and cosmetics.
@@ -745,6 +856,7 @@ app.get('/verify', (req, res) => {
   const normManu = manufacturer != null ? normalizeProductName(manufacturer) : null;
   const normAppearance = appearanceParam ? normalizeProductName(appearanceParam) : null;
   const hazard = hazardMatch(normalizedNafdac, normName, country, batchParam || null);
+  const enforcement = enforcementMatches(normName, country);
   if (rows.length === 0) {
     const suspects = knownFakeSuspects(normName, normAppearance, country, hazard ? [hazard.alert_number] : []);
     return res.json({
@@ -756,6 +868,7 @@ app.get('/verify', (req, res) => {
     ...(hazard ? { hazard } : {}),
     ...(batchParam ? { batch: batchParam } : {}),
     ...(suspects.length > 0 ? { suspects } : {}),
+    ...(enforcement.length > 0 ? { enforcement_notes: enforcement } : {}),
     });
   }
 
@@ -862,6 +975,10 @@ app.get('/verify', (req, res) => {
     const suspects = knownFakeSuspects(normName, normAppearance, country, hazard ? [hazard.alert_number] : []);
     if (suspects.length > 0) payload.suspects = suspects;
   }
+  // Enforcement notes ride along on every verdict, including a confirmed one:
+  // they are a dated record that counterfeits of a brand were seized, not a
+  // claim about the pack in the user's hand.
+  if (enforcement.length > 0) payload.enforcement_notes = enforcement;
 
   res.json(payload);
 });
@@ -925,6 +1042,45 @@ app.get('/api/alerts', (req, res) => {
       photos: parseJsonArray(row.photos_json),
       source_country: row.source_country || 'NG',
       authority: AUTHORITY_NAMES[row.source_country || 'NG'] || 'NAFDAC',
+    })),
+  });
+});
+
+// The enforcement-action list: raids, destruction exercises and lab cases that
+// NAFDAC has made public but that carry no alert number. Returned separately
+// from /api/alerts because the two are not the same kind of claim, and a client
+// that merged them would let a press statement read as a numbered alert.
+//
+// Rows recorded as `not_a_finding` (names we investigated and could not
+// substantiate) are deliberately absent: they are internal research notes, not
+// something to show a shopper.
+app.get('/api/enforcement', (req, res) => {
+  const country = req.query.country === 'KE' ? 'KE' : (req.query.country === 'NG' ? 'NG' : null);
+  const rows = reportsDb.prepare(
+    `SELECT action_key, authority, action_date, location, evidence_class, summary, brands,
+            evidence_note, source_url, source_publisher, source_country
+     FROM enforcement_actions
+     WHERE finding_status = 'action_taken' ${country ? 'AND source_country = ?' : ''}
+     ORDER BY action_date DESC, action_key ASC`
+  ).all(...(country ? [country] : []));
+  res.set('Cache-Control', 'no-cache');
+  res.json({
+    count: rows.length,
+    disclaimer:
+      'Enforcement actions are real regulator actions, but they are not public alerts: they name no batch and ' +
+      'carry no alert number, so they can never confirm or refute a specific pack.',
+    actions: rows.map((row) => ({
+      action_key: row.action_key,
+      authority: row.authority,
+      action_date: row.action_date,
+      location: row.location,
+      evidence_class: row.evidence_class,
+      summary: row.summary,
+      brands: parseJsonArray(row.brands),
+      evidence_note: row.evidence_note,
+      source_url: row.source_url,
+      source_publisher: row.source_publisher,
+      source_country: row.source_country || 'NG',
     })),
   });
 });

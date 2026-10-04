@@ -3,7 +3,7 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const BASE = 'http://127.0.0.1:3777';
+const BASE = `http://127.0.0.1:${require('../config').port}`;
 const OUT = path.join(__dirname, '..', 'screenshots');
 
 const cases = [

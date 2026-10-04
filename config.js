@@ -10,6 +10,7 @@ const cachePath = path.resolve(
 module.exports = {
   databasePath,
   cachePath,
-  port: Number(process.env.PORT) || 3777,
+  // 3788 in this working copy so the submitted project can keep running on 3777.
+  port: Number(process.env.PORT) || 3788,
   visionModel: process.env.VISION_MODEL || 'qwen/qwen3.8-27b',
 };

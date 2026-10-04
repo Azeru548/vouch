@@ -61,11 +61,26 @@ const libraryMeta = {
     aliases: ['Oracire Plus', 'Oracire toothpaste'],
     appearance: 'Toothpaste outer carton and tube. Suspected counterfeit ORACIRE+ s differ from the genuine pack in tube print, carton finish and the layout of the batch code.',
   },
+  // The alert is *titled* "Colgate Toothpaste", but the packs NAFDAC actually
+  // found are branded Coglaet and are what a shopper will read off the shelf.
+  // Both names are kept: `brand_name` is the name on the pack (Coglaet, the one
+  // that makes the alert findable), while `Colgate toothpaste` stays as an
+  // alias so a query in NAFDAC's own wording still lands here.
   '022/2026': {
     category: 'cosmetic',
-    brand_name: 'Colgate',
-    aliases: ['Colgate toothpaste'],
-    appearance: 'Toothpaste outer carton and tube. The unregistered packs mimic Colgate branding but differ in how the logo is printed, the weight statement and the batch code.',
+    brand_name: 'Coglaet',
+    aliases: [
+      'Coglaet ActivGel 100g',
+      'Coglaet Herbal 100g',
+      'Coglaet Crema Dental Herbal 100 g',
+      'Colgate toothpaste',
+    ],
+    appearance:
+      'Toothpaste outer carton and tube, 100 g, sold door to door. Stated maker on the pack is ' +
+      'Guangzhou YECAI Oral Cleaning Products Co., Ltd, Guangzhou, China. NAFDAC records the batch ' +
+      'number and the NAFDAC registration number as "Nil" for both products, so there is no number on ' +
+      'the pack to check against the register. Manufacturing dates printed are 02/08/2025 and ' +
+      '04/08/2025, expiring 01/08/2029 and 03/08/2029.',
   },
 };
 
@@ -101,6 +116,25 @@ const photosByAlert = {
 
 function fullSize(url) {
   return url.replace(/-\d+x\d+(?=\.\w+$)/, '');
+}
+
+// Regulator photos harvested from the alert pages themselves, recorded per
+// alert by `scripts/attach_harvested_photos.js` (which also copies the files
+// into web/fakes/). This seed rewrites every known_fakes row, so without
+// reading the map the harvested photos would be dropped on the next run. Only
+// paths whose file is actually present are used — an entry that no longer
+// resolves must not become a broken image in the hazard banner.
+const HARVESTED_MAP = path.join(FAKES_DIR, 'harvested_photos.json');
+
+function harvestedPhotosFor(alertNumber) {
+  if (!fs.existsSync(HARVESTED_MAP)) return [];
+  try {
+    const map = JSON.parse(fs.readFileSync(HARVESTED_MAP, 'utf8'));
+    const entries = Array.isArray(map[alertNumber]) ? map[alertNumber] : [];
+    return entries.filter((p) => fs.existsSync(path.join(FAKES_DIR, path.basename(p))));
+  } catch {
+    return [];
+  }
 }
 
 async function download(url, dest) {
@@ -190,16 +224,17 @@ async function download(url, dest) {
       await new Promise((r) => setTimeout(r, 400));
     }
 
+    const allPhotos = [...new Set([...local, ...harvestedPhotosFor(alert.alert_number)])];
     insert.run(
       alert.alert_number, alert.product_name, alert.nafdac_number, alert.batches, alert.hazard, alert.source_url,
-      JSON.stringify(local), meta.category, meta.brand_name, JSON.stringify(aliases), meta.appearance || null,
+      JSON.stringify(allPhotos), meta.category, meta.brand_name, JSON.stringify(aliases), meta.appearance || null,
     );
 
     byCategory[meta.category] = (byCategory[meta.category] || 0) + 1;
     report.push({
       alert: alert.alert_number,
       category: meta.category,
-      photos: local.length,
+      photos: allPhotos.length,
       appearance: meta.appearance ? 'text' : 'pending enrichment',
       ...(group.length > 1 ? { merged_products: names } : {}),
     });

@@ -26,22 +26,25 @@ npm install
 # One-time data setup (seeds the shipped snapshot; the registry DB ships in data/)
 npm run seed:hazards
 npm run seed:fakes
+npm run seed:enforcement    # raids, destruction exercises and lab cases (no alert numbers)
+npm run photos:attach       # wire the harvested regulator photos into known_fakes
 npm run seed:reports        # demo data only, marked is_seed = 1
 
 # Run
 npm start
-# UI  -> http://localhost:3777/
-# API -> http://localhost:3777/verify?nafdac=A11-0009&product_name=alben%20paracetamol%20drops
+# UI  -> http://localhost:3788/
+# API -> http://localhost:3788/verify?nafdac=A11-0009&product_name=alben%20paracetamol%20drops
 ```
 
 Copy `.env.example` to `.env` and set `GROQ_API_KEY` to enable photo reading and pack description. Without it, the app still works fully by manual entry — the UI shows a banner explaining that.
 
 | env var | default | purpose |
 |---|---|---|
-| `PORT` | `3777` | HTTP port |
+| `PORT` | `3788` | HTTP port (this working copy uses 3788 so the submitted project can keep 3777) |
 | `DATABASE_PATH` | `data/nafdac_products.db` | registry + reports + alerts DB |
 | `CACHE_DATABASE_PATH` | `data/napams_cache.db` | locally confirmed NAPAMS records |
 | `GROQ_API_KEY` | — | enables `/api/extract` and `/api/describe` |
+|  |  | the free tier allows ~3 photo reads a minute; over that the reader reports itself busy, not broken |
 | `VISION_MODEL` | `qwen/qwen3.8-27b` | Groq multimodal model |
 
 ## How a check works
@@ -85,6 +88,7 @@ npm run test:fakes       # known-fake library: migration, matching, lead UI
 npm run test:reports     # report API, migration, community flag, rate limit
 npm run test:report-ui   # report modal flow, Playwright
 npm run test:e2e         # full desktop + mobile flows (Playwright)
+npm run test:extract     # photo reading: endpoint contract + reads AB-102886 off the sample pack (needs GROQ_API_KEY)
 ```
 
 Test suites spawn the real server against a temporary database and use per-process ports; they never touch the shipped data.

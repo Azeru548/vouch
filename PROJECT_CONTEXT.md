@@ -93,9 +93,22 @@ Two things worth knowing before touching it:
 - **`alert_number` is UNIQUE, but two alerts cover two products each** (`35/2025` = Annmox *and* Jawamox; `34/2025` = Astamocil *and* Astamentin). The seed merges those into one row carrying both names in `product_name` and `aliases`; a naive one-row-per-alert loop silently drops the second product.
 - **`appearance` is deliberately null for the drug entries.** They already have official NAFDAC photos on disk, and `enrich:fake-appearance` fills their descriptors in from the photo. We do not invent pack details we cannot see. The food and cosmetic rows carry hand-written descriptors taken from what their alerts actually describe.
 - **Photos come from the alert page itself**, never from a lookalike or a stock image. `photosByAlert` in `seed_fakes.js` lists the exact URLs read out of each alert, and the seed downloads them to `web/fakes/`. Three alerts publish no product photo at all (`018/2026` Cerelac, `34/2025` and `35/2025` amoxicillin suspensions); those entries fall back to their written `appearance` descriptor, and the UI says plainly that no photo exists. Do not substitute an image for them.
-- One quirk to expect: NAFDAC published the `041/2026` ORACIRE+ counterfeit photo under filenames beginning `OralB`. The images do sit under that page's "Counterfeit Product Photo" heading, so they belong to the alert despite the name.
+- One quirk to expect: NAFDAC published the `041/2026` ORACIRE+ counterfeit photo under filenames beginning `OralB`. The images do sit under that page's "Counterfeit Product Photo" heading, so they belong to the alert despite the name. This is also why `oral-b` must **not** match that alert — the naming slip is NAFDAC's, the product is ORACIRE+, and aliasing Oral-B would implicate a genuine brand. The reasoning is recorded in `enforcement_actions` row `unsubstantiated-oral-b`.
+- **Harvested photos (4 Oct 2026):** `npm run photos:attach` copies the regulator images already harvested from alert pages (`research/alert_photo_manifest.json`, 476 published URLs, 242 still reachable — NAFDAC rotated the older uploads and those are permanently gone) into `web/fakes/` and unions them into `known_fakes.photos_json`. 33 images turned out to be byte-identical to a photo already held and are reused rather than copied twice. It writes `web/fakes/harvested_photos.json`, which `seed_fakes.js` reads, so a re-seed does not wipe them — the seed rewrites every `known_fakes` row, so anything attached only in the database would be lost.
 
 `/verify` matches against the library through `knownFakeSuspects()`, which scores every row on the typed name (against `product_name` + `brand_name` + `aliases`) and on the photo's `appearance` descriptor, both with `fuzzball.token_set_ratio`. A name hit is held to the same 85 bar used elsewhere; an appearance-only hit is allowed in at 60, because free-text pack descriptions are noisy, and such hits are labelled `matched_on: 'appearance'`. Leads are reported in a `suspects` array (max 3) and are **advisory only**: they are attached only to `not_found` and `mismatch` results, never to a confirmed registration, and they never change a verdict.
+
+## `enforcement_actions` — enforcement evidence that is not an alert
+
+Added 4 Oct 2026. A third table, because the evidence the public actually cares about is not always a numbered public alert. Most of the "fake products" lists circulating in Nigeria are built from NAFDAC **raids and press statements** — Aba, the Nasarawa and Rivers rice hauls, the expired-Hollandia warehouses, a 2019 destruction exercise. Those are real, NAFDAC-attributed and useful, but they name **no batch and no alert number**, so they cannot support a batch-level verdict and must not be dressed up as one. Columns: `action_key UNIQUE` (our identifier, e.g. `aba-2024-12-15` — never a number NAFDAC did not publish), `authority, action_date, location, evidence_class, summary, brands JSON, finding_status, evidence_note, source_url, source_publisher, source_country`. `finding_status` is the load-bearing column:
+
+- **`action_taken`** — the agency seized or destroyed goods. Surfaced.
+- **`not_a_finding`** — we looked and there is nothing to record (an NDLEA drug seizure, which is law enforcement and not a product-quality finding; or a viral claim we could not substantiate). **Never surfaced.** These rows exist so the negative result is written down once, with its reason, instead of being re-researched or quietly turned into a hazard later. Three exist: `ndlea-tramadol-2022-10` (Tamral / TramaKing), `unsubstantiated-reliance-extra`, `unsubstantiated-oral-b`.
+
+Seed with `npm run seed:enforcement`; list via `GET /api/enforcement` (action_taken rows only) and read them in a `/verify` result as `enforcement_notes`. Two rules to preserve:
+
+- **Matching is stricter than the known-fake library, because these rows name ordinary brands.** Fanta, Sprite, Ovaltine, Schweppes — a loose match puts a note under half the products in the country. Fuzzy scoring is the wrong tool and was tried: `token_set_ratio` rewards containment, so the bare word `rice` scored **100** against `Big Bull Rice`, and dropping generic words was not enough either (`tomato paste` then half-matched `Tomato Rice`). The rule that holds is strict: **every word of the brand name must be present in the query as a whole word**. Short forms a shopper actually types (`Big Bull`, `Peak`, `Miksi`, `Dr. Really`) are stored as extra brand entries rather than guessed at match time.
+- **Enforcement notes ride along on every verdict, including a confirmed one**, and are rendered in their own panel (`enforcementPanel`, `.enforcement-panel`) that states on its face that the note is a record of an action, not a finding about the pack. They never change `status`.
 
 ## The four verdicts
 
@@ -136,8 +149,23 @@ Key gotchas learned the hard way:
 - **`meta-llama/llama-4-scout-17b-16e-instruct` does not exist on the available Groq account** (404). Only `qwen/qwen3.8-27b` is multimodal there. Override with `VISION_MODEL` if that changes.
 - **Asking the model for less produced better results.** When the prompt also requested a product name, the model returned wrong numbers (`B-102886`, `8-102886`) and garbage names (`"SOTL"`). With name extraction removed it reads the number correctly: `AB-102886`.
 - The regex only validates *shape*, not correctness. A wrong-but-well-formed number will pass and land on `not_found`. That's the intended safety net, not a silent bad verification.
+- **A busy model is not a broken one.** Groq's free tier caps vision input at ~7,000 tokens/minute and answers anything over that with `429`. That used to be reported as a `502 vision_upstream_error` ("Photo reading service is unavailable"), which told users the reader was down when all it needed was a few seconds' wait. `visionUpstreamError()` now maps `429` to `429 vision_rate_limited` with the upstream's own wait ("Please try again in 13.98s") parsed into `retry_after_seconds` plus a `Retry-After` header, and the UI says the reader is busy and to tap the photos again. Any other non-OK upstream stays a `502`. Expect rate limiting constantly on the free tier — roughly three photo reads a minute.
 - `GET /api/config` reports whether vision is enabled so the UI can show a banner.
 - `GET /api/alerts` serves the whole known-fake library (parsed arrays, ordered by alert number) for the public register at **`/alerts.html`** — a standalone blog-style page with filters, search and NAFDAC reference photos. As of the direct-import sync it holds **every NAFDAC alert since 2013** (~400 rows; only the curated 17 carry photos). It lives in the SW shell cache; bump `CACHE` when touching `alerts.js`/`alerts.html`. `POST /api/alerts/sync` is admin-gated (see freshness pipeline above).
+
+### `test:extract` asserts, and how to run it
+
+`scripts/test_extract.js` was a print-only smoke script: no assertions at all, so three of five photos failing (or the endpoint 502ing on every call) still exited `0`. It now has two halves:
+
+1. **Contract checks** — always run, no network: 0 images, 5 images and a non-`data:` URL are all rejected `400 bad_images`; every response keeps `nafdac_number`/`found`/`format_valid`/`usable`; `usable === found && format_valid` (the UI branches on it); and the response must **not** carry `product_name`, guarding the deliberate "the name is always typed by the user" decision.
+2. **Live checks** — only when `GROQ_API_KEY` is set. `assets/sharp-sample-image.jpg` must read **`AB-102886`** (the number printed on the bottle, transcribed by hand so a regression can't agree with a wrong answer) with `found`/`format_valid`/`usable` all true, and that number is then fed to `/verify` (`not_found` is the *correct* verdict — `AB-102886` is real but absent from the snapshot). The four softer photos are not required to be legible but must return 200 and must never report a malformed number as valid.
+
+Two things to know before changing it:
+
+- It paces itself ~21 s between photos and waits out `429`s using `retry_after_seconds`. Three retries max. It takes a couple of minutes; that is the free tier, not a hang.
+- It uses its own port (`39600 + pid % 100`). It used to borrow the app's `3788`, which made it silently talk to whatever dev server was running and then fail confusingly when that server was stopped.
+
+Negative-tested both ways: breaking `NAFDAC_RE` in `server.js` makes it exit `1` with `reads the printed number AB-102886: false == true`.
 
 ## NAPAMS handoff and local cache
 
@@ -162,7 +190,7 @@ npm.cmd run test:e2e                 # Playwright desktop/mobile flow, NAPAMS ha
 npm.cmd run test:reports             # report API, community flag, rate limit (temp DB)
 npm.cmd run test:report-ui           # report modal (verdict strip, photo attach), multi-upload, threshold flag (temp DB copy)
 npm.cmd run seed:reports             # 10 DEMO seed reports (5 NG, 5 KE); modifies the configured DB
-npm.cmd run test:extract             # sends each assets/ image through /api/extract
+npm.cmd run test:extract             # asserted /api/extract suite: contract checks (always) + live OCR of assets/ (needs GROQ_API_KEY)
 npm.cmd run test:hazards             # hazard matching + banner ordering (temp DB)
 npm.cmd run test:fakes               # known-fake library schema, matching, lead UI (temp DB)
 npm.cmd run seed:hazards             # 19 curated NAFDAC alerts; modifies the configured DB

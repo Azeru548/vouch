@@ -1477,6 +1477,83 @@ html.modal-open { overflow: hidden; }
 
 .suspect-more a { color: var(--info); font-weight: 700; }
 
+/* ---------- enforcement actions (/verify notes) ---------- */
+/* Quieter than the alert banner on purpose: an enforcement action is a dated
+   record that counterfeits of a brand were seized, not a finding on this pack. */
+
+.enforcement-panel {
+  margin: 1rem 0 0.9rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--info);
+  border-radius: var(--radius-small);
+  background: var(--paper-deep);
+}
+
+.enforcement-panel h3 {
+  margin: 0;
+  color: var(--info);
+  font-family: var(--display);
+  font-size: 0.95rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.enforcement-panel > p {
+  margin: 0.35rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+
+.enforcement-list {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.enforcement-item {
+  padding: 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+}
+
+.enforcement-cat {
+  display: inline-block;
+  margin-right: 0.4rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  background: var(--info);
+  color: #fff;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.enforcement-body strong {
+  display: block;
+  margin-top: 0.3rem;
+  color: var(--ink);
+  font-size: 0.88rem;
+}
+
+.enforcement-meta,
+.enforcement-source {
+  margin: 0.3rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+}
+
+.enforcement-note {
+  margin: 0.35rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.79rem;
+}
+
+.enforcement-source a { color: var(--info); font-weight: 700; }
+
 .sr-only {
   position: absolute;
   width: 1px;
