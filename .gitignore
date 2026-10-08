@@ -15,3 +15,6 @@ scripts/*.db
 scripts/duplicate_report.txt
 .DS_Store
 Thumbs.db
+
+# database backups written by migration scripts
+data/*.bak-*

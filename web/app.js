@@ -21,8 +21,12 @@ const els = {
   verifyLabel: $('#verify-label'),
 };
 
-const NAFDAC_RE = /^[A-Z0-9]{1,3}-\d{3,6}$/i;
-const PPB_RE = /^[A-Z0-9][A-Z0-9/.-]{2,31}$/i;
+// Registration-number rules come from /number-normalize.js, which the server
+// derives from the same module it uses (window.VouchNumbers). This file used to
+// keep its own copy of the pattern, and it was the stale one: it rejected the
+// listed/herbal `A7-2363L` series and dash-and-space printings, so a user could
+// not even submit a number the server would have verified.
+const VouchNumbers = window.VouchNumbers || null;
 
 // Photo sets are bounded so one request cannot exhaust the vision service's
 // context window — the server enforces the same limit.
@@ -389,11 +393,17 @@ async function submitVerify() {
     return;
   }
   if (nafdac) {
-    const validNumber = country === 'KE' ? PPB_RE.test(nafdac) : NAFDAC_RE.test(nafdac);
+    // Validated with the shared module so the browser cannot reject a number the
+    // server would accept. If the module somehow failed to load, fall back to
+    // letting the request through and letting the server be the judge, rather
+    // than blocking the user on a client-side guess.
+    const validNumber = VouchNumbers
+      ? VouchNumbers.isPlausibleRegistrationNumber(nafdac, country)
+      : true;
     if (!validNumber) {
       showLocalError(country === 'KE'
         ? 'Enter the Kenya PPB registration number exactly as printed on the pack, or leave the field blank.'
-        : 'Enter the NAFDAC number in the format shown on the pack, such as A11-0009, or leave the field blank.');
+        : 'Enter the NAFDAC number in the format shown on the pack, such as A11-0009, A7-2363L, or leave the field blank.');
       els.nafdac.focus();
       return;
     }

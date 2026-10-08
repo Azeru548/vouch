@@ -1,8 +1,9 @@
-const CACHE = 'vouch-shell-v16';
+const CACHE = 'vouch-shell-v17';
 const SHELL = [
   '/',
   '/styles.css',
   '/app.js',
+  '/number-normalize.js',
   '/alerts.html',
   '/alerts.js',
   '/manifest.webmanifest',

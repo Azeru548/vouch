@@ -10,6 +10,7 @@
     "ingest:kenya": "node scripts/ingest_kenya.js",
     "migrate:country": "node scripts/migrate_country.js",
     "migrate:origin": "node scripts/migrate_origin_country.js",
+    "migrate:number-normalize": "node scripts/migrate_number_normalize.js",
     "seed:reports": "node scripts/seed_reports.js",
     "seed:hazards": "node scripts/seed_hazards.js",
     "seed:fakes": "node scripts/seed_fakes.js",
@@ -30,6 +31,7 @@
     "test:batch": "node scripts/test_batch.js",
     "test:matcher": "node scripts/test_matcher.js",
     "test:library": "node scripts/test_library_integrity.js",
+    "test:numbers": "node scripts/test_numbers.js",
     "test:report-ui": "node scripts/test_report_ui.js",
     "test:e2e": "node scripts/e2e_flow.js"
   },

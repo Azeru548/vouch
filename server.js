@@ -10,6 +10,7 @@ const { ensureKnownFakesTable, parseJsonArray } = require('./scripts/fakes_schem
 const { ensureEnforcementTable } = require('./scripts/enforcement_schema');
 const { APPEARANCE_PROMPT, cleanAppearanceFields } = require('./scripts/fake_appearance');
 const { runSync, fetchIndex, guardLiveSummary } = require('./scripts/alert_sync');
+const { normalizeNumber, isPlausibleRegistrationNumber } = require('./scripts/number_normalize');
 const { timingSafeEqual } = require('node:crypto');
 
 const WEB_DIR = path.join(__dirname, 'web');
@@ -17,7 +18,12 @@ const GROQ_KEY = process.env.GROQ_API_KEY || '';
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const NAPAMS_URL = 'https://registration.nafdac.gov.ng/';
 
-const NAFDAC_RE = /^[A-Z0-9]{1,3}-\d{3,6}$/i;
+// Registration-number shape and normalisation live in scripts/number_normalize.js
+// so the server, the ingesters, the migration and the tests all share one
+// definition. The old inline pattern here was drug-only: it rejected the
+// listed/herbal `A7-2363L` suffix series and every dash-and-space printing
+// (`04 – 1486`, `04- 9502`) that NAFDAC rows in our own snapshot actually carry,
+// and it accepted month fragments like `Aug`.
 
 if (!fs.existsSync(DB_PATH)) {
   throw new Error(`Database not found at ${DB_PATH}. Run npm run ingest or set DATABASE_PATH.`);
@@ -196,12 +202,14 @@ app.post('/api/extract', async (req, res) => {
       }
       if (typeof parsed.nafdac_number === 'string') candidates.unshift(parsed.nafdac_number);
     }
-    const shapeMatch = raw.match(/[A-Z0-9]{1,3}-\d{3,6}/i);
+    const shapeMatch = raw.match(/[A-Z0-9]{1,4}-\d{2,7}[A-Z]?/i);
     if (shapeMatch) candidates.push(shapeMatch[0]);
 
-    const nafdac_number = candidates.length > 0 ? String(candidates[0]).trim().toUpperCase() : null;
+    // Canonicalise before validating, so a number printed with an en-dash or
+    // internal spaces (`04 – 1486`) is not reported to the user as malformed.
+    const nafdac_number = candidates.length > 0 ? normalizeNumber(candidates[0]) || null : null;
     const found = (parsed && parsed.found === true) || nafdac_number != null;
-    const format_valid = nafdac_number != null && (country === 'KE' ? /^[A-Z0-9][A-Z0-9/.-]{2,31}$/i.test(nafdac_number) : NAFDAC_RE.test(nafdac_number));
+    const format_valid = nafdac_number != null && isPlausibleRegistrationNumber(nafdac_number, country);
 
     // Batch/lot codes: taken from the model's batch_number key when present,
     // otherwise a loose scan of the raw text for a "BATCH/LOT: X" label.
@@ -842,7 +850,10 @@ app.get('/verify', (req, res) => {
     return res.status(400).json({ error: 'input_too_long' });
   }
 
-  const normalizedNafdac = hasNumber ? String(nafdac).trim() : '';
+  // Canonicalise the typed number before looking it up, so `04 – 1486` and
+  // `04-1486` resolve to the same row. This is still an EXACT comparison — it
+  // fixes printing differences and never makes a lookalike number match.
+  const normalizedNafdac = hasNumber ? normalizeNumber(nafdac) : '';
   const rows = hasNumber
     ? [
         ...selectGreenbook.all(normalizedNafdac, country).map((row) => ({ ...row, source: country === 'KE' ? 'kenya_ppb' : 'greenbook', source_checked_at: null })),
@@ -1088,6 +1099,27 @@ app.get('/api/enforcement', (req, res) => {
 app.get('/sw.js', (req, res) => {
   res.set('Cache-Control', 'no-cache');
   res.sendFile(path.join(WEB_DIR, 'sw.js'));
+});
+
+// The registration-number rules live in one module so the client and the server
+// cannot drift — app.js used to keep its own copy of the pattern, which is how
+// the browser ended up rejecting `A7-2363L` while the server accepted it.
+//
+// There is no bundler here, so the CommonJS tail is rewritten into a browser
+// global on the way out. The rewrite is anchored on the exact export block and
+// throws if that block is ever restructured, rather than silently serving a
+// module that defines nothing.
+app.get('/number-normalize.js', (req, res) => {
+  const source = fs.readFileSync(path.join(__dirname, 'scripts', 'number_normalize.js'), 'utf8');
+  const exportBlock = /module\.exports\s*=\s*\{[\s\S]*?\};?\s*$/;
+  if (!exportBlock.test(source)) {
+    throw new Error('number_normalize.js no longer ends in a module.exports block; update /number-normalize.js');
+  }
+  const browserSource = source
+    .replace(exportBlock, 'window.VouchNumbers = { normalizeNumber, isPlausibleNumber, isPlausiblePpbNumber, isPlausibleRegistrationNumber, describeRejection, NUMBER_RE, PPB_RE };')
+    .replace(/^const /gm, '');
+  res.set('Cache-Control', 'no-cache');
+  res.type('application/javascript').send(browserSource);
 });
 
 app.get('/manifest.webmanifest', (req, res) => {

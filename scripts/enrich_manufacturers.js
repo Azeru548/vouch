@@ -90,8 +90,10 @@ function unescapeHtml(s) {
     UPDATE products SET manufacturer =
       (SELECT name FROM manufacturers WHERE manufacturers.id = products.manufacturer_id)
   `);
+  // Single quotes: SQLite reads "" as a column identifier, which threw
+  // `no such column: ""` and made this script exit 1 after doing its work.
   const withName = db.prepare(
-    'SELECT COUNT(*) AS n FROM products WHERE manufacturer IS NOT NULL AND manufacturer != ""'
+    "SELECT COUNT(*) AS n FROM products WHERE manufacturer IS NOT NULL AND manufacturer != ''"
   ).get().n;
   console.log(`products now with manufacturer name: ${withName}`);
 

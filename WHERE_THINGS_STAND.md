@@ -153,7 +153,59 @@ always exited 0, so three of five photos failing still looked green. Now:
 Verified: 20/20 pass. Negative-tested by breaking `NAFDAC_RE` → exits **1** with
 `reads the printed number AB-102886: false == true`.
 
-### 7. Research corrections
+### 7. Greenbook refresh (8 Oct 2026)
+
+`npm run ingest` **is** the update script. Contrary to the README's "destructive —
+recreates the DB" wording, it does not touch the whole database: it stages the fetch,
+then `DELETE FROM products WHERE country = 'NG'` and reinserts. **Kenya, alerts,
+known_fakes, enforcement_actions, reports and napams_cache are untouched.** It does,
+however, write `manufacturer = NULL` for every NG row — you **must** run
+`npm run enrich:manufacturers` afterwards or manufacturer names are silently gone.
+
+Refresh results (was last pulled 26 Sep 2026):
+
+| | before | after |
+|---|---|---|
+| NG products | 8,980 | 8,938 (−42) |
+| KE products | 3,235 | 3,235 (untouched) |
+| hazard_alerts / known_fakes / enforcement | 566 / 564 / 8 | unchanged |
+
+After normalising dash/space variants: 37 products gone, 4 new, **239 went Active →
+Inactive**, 2 the other way, 13 mixed. The 239 matter for behaviour — those checks now
+return `verified_inactive` instead of `verified`, which is correct but is a visible
+change to users.
+
+**Bug fixed in `scripts/enrich_manufacturers.js`:** the final count used
+`manufacturer != ""`, and SQLite reads `""` as a *column identifier*, not an empty
+string — so the script did all its work and then died with `no such column: ""`,
+exiting 1 while actually succeeding. Now single-quoted; exits 0 and reports 8,937/8,938
+populated. (1 orphan `manufacturer_id = 1161.0` has no name — pre-existing.)
+
+**Fixed — and this is the key operational fact: `npm run ingest` UNDOES the number
+normalisation, so `npm run migrate:number-normalize` must be re-run after every
+ingest.** Greenbook's feed re-entered three registrations with **en-dashes**
+(`04 – 1486`, `04–1324`, `04–2045`). `/verify` canonicalises only the *typed* input
+(`server.js` ~line 856) and then does an exact comparison against the stored column,
+so with raw values in the DB those packs returned `not_found` — precisely the
+"not found ≠ fake" failure the project guards against. Non-standard NG numbers had
+risen 18 → 24; after `migrate:number-normalize` they are back to 18 and all three
+products resolve again. The migration auto-backs up to `data/nafdac_products.db.bak-*`,
+rewrites only plausible registration numbers, and leaves junk (`Not available yet`,
+`2 X 7`, `04-5112ugo`) untouched so the data-quality problem stays visible. It
+reported one collision — `04-1508` / `04 - 1508`, same product twice — and
+deliberately did not merge it.
+
+Backups: `recon/db-backups/pre-ingest-2026-10-08.db` (pre-refresh) and
+`data/nafdac_products.db.bak-2026-10-08T13-10-30` (pre-normalisation).
+
+**All 10 node suites re-run AFTER the migration** (not just after the ingest):
+`test`, `test:numbers`, `test:matcher`, `test:library`, `test:hazards`, `test:batch`,
+`test:reports`, `test:kenya`, `test:alert-sync`, `test:ppb-sync` — all exit 0. The
+three Playwright suites (`test:fakes`, `test:report-ui`, `test:e2e`) have still not
+been run since this session's `server.js` change; run them when the machine is busy
+enough to take it.
+
+### 8. Research corrections
 `research/research_notes.json`: "Mama Pride Rice" `unconfirmed` → `enforcement`.
 JSON revalidated, `node scripts/build_results_table.js` re-run. New section
 "## 7. What was built from this research (4 Oct 2026)" in
@@ -172,6 +224,7 @@ npm run test:alert-sync  # NAFDAC parser + import lifecycle, no network
 npm run test:ppb-sync    # PPB parser + import lifecycle, no network
 npm run test:library     # library + photo + enforcement integrity
 npm run test:kenya
+npm run test:numbers     # registration-number normalisation/validation (14 cases)
 npm run test:report-ui   # Playwright
 npm run test:e2e         # Playwright desktop + mobile
 npm run test:extract     # photo reading; needs GROQ_API_KEY, ~2 min
@@ -179,8 +232,12 @@ npm run test:extract     # photo reading; needs GROQ_API_KEY, ~2 min
 
 Seeding is idempotent (verified by re-running).
 
-**Test status after the 4 Oct 2026 photo-reading change** — the last time
-`server.js` was edited:
+**Current status: the most recent run was after the 8 Oct 2026 Greenbook refresh
+and number migration — 10 node suites green** (see section 7 for the exact list).
+The three Playwright suites remain unrun since this session's `server.js` change.
+
+**Earlier checkpoint — test status after the 4 Oct 2026 photo-reading change**
+(the last time `server.js` was edited):
 
 - Re-run and green against the current code: `test`, `test:library`,
   `test:matcher`, `test:hazards`, `test:reports`, `test:alert-sync`,
